@@ -13,6 +13,7 @@ const SCREENS = {
   CARD: "card",
   TOPUP: "topup",
   QR: "qr",
+  KYC: "kyc",
 };
 
 // ─── Bottom Nav ────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ function BottomNav({ screen, setScreen }) {
     { id: SCREENS.CARD, icon: "💳", label: "Kaart" },
     { id: SCREENS.TOPUP, icon: "🎫", label: "Opladen" },
     { id: SCREENS.QR, icon: "⬛", label: "QR" },
+    { id: SCREENS.KYC, icon: "🪪", label: "Verificatie" },
   ];
   return (
     <div style={{
@@ -272,7 +274,6 @@ function DashboardScreen({ user, onLogout, setScreen }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const name = profile?.full_name || user?.user_metadata?.full_name || user?.email || "Gebruiker";
-
   const txIcon = (type) => type === "topup" ? "🎫" : type === "purchase" ? "🛒" : "💸";
 
   return (
@@ -388,14 +389,11 @@ function TopupScreen({ user, onSuccess }) {
     if (code.trim().length < 10) { setResult({ success: false, message: "Voer een geldige code in" }); return; }
     setLoading(true);
     setResult(null);
-
     const { data, error } = await supabase.rpc("redeem_scratch_card", {
       card_code: code.trim().toUpperCase(),
       user_id: user.id,
     });
-
     setLoading(false);
-
     if (error) { setResult({ success: false, message: "Fout bij verwerken. Probeer opnieuw." }); return; }
     setResult(data);
     if (data.success) { setCode(""); onSuccess(); }
@@ -443,7 +441,6 @@ function TopupScreen({ user, onSuccess }) {
             textAlign: "center", boxSizing: "border-box",
           }}
         />
-
         {result && (
           <div style={{
             marginTop: 12,
@@ -580,6 +577,156 @@ function QRScreen({ user, profile }) {
   );
 }
 
+// ─── KYC Screen ────────────────────────────────────────────────────────────
+function KYCScreen({ user }) {
+  const [idFront, setIdFront] = useState(null);
+  const [idBack, setIdBack] = useState(null);
+  const [selfie, setSelfie] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+  const [kycStatus, setKycStatus] = useState(null);
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      const { data } = await supabase
+        .from("kyc_submissions")
+        .select("status")
+        .eq("user_id", user.id)
+        .single();
+      if (data) setKycStatus(data.status);
+    };
+    checkStatus();
+  }, [user.id]);
+
+  const uploadFile = async (file, path) => {
+    const { data, error } = await supabase.storage
+      .from("kyc-documents")
+      .upload(path, file, { upsert: true });
+    if (error) throw error;
+    return data.path;
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const uid = user.id;
+      const frontPath = await uploadFile(idFront, `${uid}/id_front.jpg`);
+      const backPath = await uploadFile(idBack, `${uid}/id_back.jpg`);
+      const selfiePath = await uploadFile(selfie, `${uid}/selfie.jpg`);
+      const { error: dbError } = await supabase
+        .from("kyc_submissions")
+        .upsert({
+          user_id: uid,
+          id_front_url: frontPath,
+          id_back_url: backPath,
+          selfie_url: selfiePath,
+          status: "pending",
+        });
+      if (dbError) throw dbError;
+      setSuccess(true);
+      setKycStatus("pending");
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const statusBanner = () => {
+    if (kycStatus === "approved") return { color: "#00d4aa", bg: "rgba(0,212,170,0.1)", border: "rgba(0,212,170,0.3)", text: "✅ Je identiteit is geverifieerd!" };
+    if (kycStatus === "pending") return { color: "#ffb400", bg: "rgba(255,180,0,0.1)", border: "rgba(255,180,0,0.3)", text: "⏳ Je verificatie wordt beoordeeld." };
+    if (kycStatus === "rejected") return { color: "#ff6b6b", bg: "rgba(255,80,80,0.1)", border: "rgba(255,80,80,0.3)", text: "❌ Verificatie afgekeurd. Upload opnieuw." };
+    return null;
+  };
+
+  const banner = statusBanner();
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(160deg, #0a1628 0%, #0d2445 100%)",
+      fontFamily: "'DM Sans', sans-serif", padding: "56px 24px 80px",
+    }}>
+      <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Identiteitsverificatie</div>
+      <div style={{ color: "#6b8ab0", fontSize: 13, marginBottom: 24 }}>Upload je ID om je account te verifiëren</div>
+
+      {banner && (
+        <div style={{
+          background: banner.bg, border: `1px solid ${banner.border}`,
+          borderRadius: 14, padding: "14px 16px", color: banner.color,
+          fontSize: 13, fontWeight: 600, marginBottom: 24, textAlign: "center",
+        }}>{banner.text}</div>
+      )}
+
+      {(kycStatus === "approved") ? null : (
+        <>
+          {[
+            { label: "Voorkant ID", setter: setIdFront, value: idFront },
+            { label: "Achterkant ID", setter: setIdBack, value: idBack },
+            { label: "Selfie met ID", setter: setSelfie, value: selfie },
+          ].map((field, i) => (
+            <div key={i} style={{
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 16, padding: "16px", marginBottom: 12,
+            }}>
+              <div style={{ color: "#8aa4c8", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+                {field.label.toUpperCase()}
+              </div>
+              <input
+                type="file" accept="image/*,application/pdf"
+                onChange={e => field.setter(e.target.files[0])}
+                style={{ color: "#fff", fontSize: 13, width: "100%" }}
+              />
+              {field.value && (
+                <div style={{ color: "#00d4aa", fontSize: 11, marginTop: 6 }}>
+                  ✓ {field.value.name}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {error && (
+            <div style={{
+              background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)",
+              borderRadius: 10, padding: "10px 14px", color: "#ff6b6b",
+              fontSize: 13, marginBottom: 16,
+            }}>❌ {error}</div>
+          )}
+
+          {!success && (
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !idFront || !idBack || !selfie}
+              style={{
+                width: "100%",
+                background: (!idFront || !idBack || !selfie)
+                  ? "rgba(255,255,255,0.1)"
+                  : "linear-gradient(135deg, #00d4aa, #0099ff)",
+                border: "none", borderRadius: 14, padding: "16px",
+                color: "#fff", fontSize: 16, fontWeight: 800,
+                cursor: (!idFront || !idBack || !selfie) ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 24px rgba(0,212,170,0.25)",
+              }}
+            >
+              {loading ? "⏳ Bezig met uploaden..." : "Indienen"}
+            </button>
+          )}
+
+          {success && (
+            <div style={{
+              background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.3)",
+              borderRadius: 16, padding: 24, textAlign: "center", color: "#00d4aa", fontWeight: 700,
+            }}>
+              ✅ Documenten ingediend! We controleren ze zo snel mogelijk.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.LOGIN);
@@ -648,6 +795,7 @@ export default function App() {
       {screen === SCREENS.CARD && <CardScreen user={user} profile={profile} />}
       {screen === SCREENS.TOPUP && <TopupScreen user={user} onSuccess={handleTopupSuccess} />}
       {screen === SCREENS.QR && <QRScreen user={user} profile={profile} />}
+      {screen === SCREENS.KYC && <KYCScreen user={user} />}
       <BottomNav screen={screen} setScreen={setScreen} />
     </div>
   );
