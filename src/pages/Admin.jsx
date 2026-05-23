@@ -279,7 +279,11 @@ function KYCTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
+  useEffect(() => { 
+    fetchSubmissions(); 
+    const interval = setInterval(fetchSubmissions, 5000);
+    return () => clearInterval(interval);
+}, [fetchSubmissions]);
 
   const getImageUrl = (path) => {
   if (!path) return null;
@@ -303,7 +307,7 @@ function KYCTab() {
     showToast(status === "approved" ? "✅ KYC goedgekeurd!" : "❌ KYC afgekeurd", status === "approved" ? "success" : "error");
     setSelected(null);
     setNotes("");
-    fetchSubmissions();
+    await fetchSubmissions();
   };
 
   const statusBadge = (status) => {
