@@ -282,10 +282,9 @@ function KYCTab() {
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
   const getImageUrl = (path) => {
-    if (!path) return null;
-    const { data } = supabase.storage.from("kyc-documents").getPublicUrl(path);
-    return data?.publicUrl;
-  };
+  if (!path) return null;
+  return `${SUPABASE_URL}/storage/v1/object/public/kyc-documents/${path}`;
+};
 
   const handleAction = async (status) => {
     if (!selected) return;
