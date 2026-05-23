@@ -590,7 +590,7 @@ export default function App() {
             { id: "validate", label: "🔍 Valideren" },
             { id: "kyc", label: "🪪 KYC" },
             { id: "users", label: "👥 Gebruikers" },
-          ].map(t => (
+             ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, padding: "10px 4px",
               background: "transparent", border: "none",
