@@ -774,7 +774,32 @@ function KYCScreen({ user }) {
               )}
             </div>
           ))}
-
+<div style={{
+  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 16, padding: "16px", marginBottom: 16,
+}}>
+  <div style={{ color: "#8aa4c8", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+    WHATSAPP NUMMER
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span style={{ fontSize: 20 }}>📱</span>
+    <input
+      type="tel"
+      placeholder="+597 XXX XXXX"
+      value={whatsapp}
+      onChange={e => setWhatsapp(e.target.value)}
+      style={{
+        flex: 1, background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 12, padding: "12px 14px", color: "#fff",
+        fontSize: 14, outline: "none", boxSizing: "border-box",
+      }}
+    />
+  </div>
+  <div style={{ color: "#6b8ab0", fontSize: 11, marginTop: 6 }}>
+    Wij gebruiken dit alleen voor verificatiecontact
+  </div>
+</div>
           {error && (
             <div style={{
               background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)",
