@@ -785,7 +785,7 @@ function KYCScreen({ user }) {
     <span style={{ fontSize: 20 }}>📱</span>
     <input
       type="tel"
-      placeholder="+597XXXXXXX"
+      placeholder="+597 XXX XXXX"
       value={whatsapp}
       onChange={e => setWhatsapp(e.target.value)}
       style={{
