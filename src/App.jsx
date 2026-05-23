@@ -253,6 +253,87 @@ function RegisterScreen({ onGoLogin }) {
   );
 }
 
+// ─── KYC Status Banner ─────────────────────────────────────────────────────
+function KYCBanner({ userId, setScreen }) {
+  const [kycStatus, setKycStatus] = useState(null);
+
+  useEffect(() => {
+    supabase
+      .from("kyc_submissions")
+      .select("status")
+      .eq("user_id", userId)
+      .single()
+      .then(({ data }) => { if (data) setKycStatus(data.status); });
+  }, [userId]);
+
+  if (kycStatus === "approved") return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.3)",
+      borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>✅</span>
+        <div>
+          <div style={{ color: "#00d4aa", fontSize: 13, fontWeight: 700 }}>Identiteit geverifieerd</div>
+          <div style={{ color: "#6b8ab0", fontSize: 11 }}>Je account is volledig actief</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (kycStatus === "pending") return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      background: "rgba(255,180,0,0.1)", border: "1px solid rgba(255,180,0,0.3)",
+      borderRadius: 14, padding: "12px 16px", marginBottom: 16,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>⏳</span>
+        <div>
+          <div style={{ color: "#ffb400", fontSize: 13, fontWeight: 700 }}>Verificatie in behandeling</div>
+          <div style={{ color: "#6b8ab0", fontSize: 11 }}>We controleren je documenten</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (kycStatus === "rejected") return (
+    <div onClick={() => setScreen(SCREENS.KYC)} style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)",
+      borderRadius: 14, padding: "12px 16px", marginBottom: 16, cursor: "pointer",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>❌</span>
+        <div>
+          <div style={{ color: "#ff6b6b", fontSize: 13, fontWeight: 700 }}>Verificatie afgekeurd</div>
+          <div style={{ color: "#6b8ab0", fontSize: 11 }}>Tik om opnieuw in te dienen</div>
+        </div>
+      </div>
+      <span style={{ color: "#ff6b6b", fontSize: 18 }}>›</span>
+    </div>
+  );
+
+  // Geen KYC ingediend
+  return (
+    <div onClick={() => setScreen(SCREENS.KYC)} style={{
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      background: "rgba(255,180,0,0.08)", border: "1px solid rgba(255,180,0,0.25)",
+      borderRadius: 14, padding: "12px 16px", marginBottom: 16, cursor: "pointer",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>🪪</span>
+        <div>
+          <div style={{ color: "#ffb400", fontSize: 13, fontWeight: 700 }}>Verifieer je identiteit</div>
+          <div style={{ color: "#6b8ab0", fontSize: 11 }}>Vereist voor volledige toegang</div>
+        </div>
+      </div>
+      <span style={{ color: "#ffb400", fontSize: 18 }}>›</span>
+    </div>
+  );
+}
+
 // ─── Dashboard Screen ──────────────────────────────────────────────────────
 function DashboardScreen({ user, onLogout, setScreen }) {
   const [profile, setProfile] = useState(null);
@@ -316,6 +397,11 @@ function DashboardScreen({ user, onLogout, setScreen }) {
             }}>🌍 Internationaal actief</div>
           </div>
         </div>
+      </div>
+
+      {/* KYC Status Banner */}
+      <div style={{ padding: "0 24px" }}>
+        <KYCBanner userId={user.id} setScreen={setScreen} />
       </div>
 
       <div style={{ padding: "0 24px 24px" }}>
