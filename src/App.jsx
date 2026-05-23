@@ -16,6 +16,7 @@ const SCREENS = {
   KYC: "kyc",
 };
 
+// ─── Bottom Nav ────────────────────────────────────────────────────────────
 function BottomNav({ screen, setScreen }) {
   const items = [
     { id: SCREENS.DASHBOARD, icon: "⊞", label: "Home" },
@@ -48,6 +49,7 @@ function BottomNav({ screen, setScreen }) {
   );
 }
 
+// ─── Login Screen ──────────────────────────────────────────────────────────
 function LoginScreen({ onGoRegister }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,6 +147,7 @@ function LoginScreen({ onGoRegister }) {
   );
 }
 
+// ─── Register Screen ───────────────────────────────────────────────────────
 function RegisterScreen({ onGoLogin }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -250,6 +253,7 @@ function RegisterScreen({ onGoLogin }) {
   );
 }
 
+// ─── KYC Status Banner ─────────────────────────────────────────────────────
 function KYCBanner({ userId, setScreen }) {
   const [kycStatus, setKycStatus] = useState(null);
 
@@ -311,6 +315,7 @@ function KYCBanner({ userId, setScreen }) {
     </div>
   );
 
+  // Geen KYC ingediend
   return (
     <div onClick={() => setScreen(SCREENS.KYC)} style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -329,6 +334,7 @@ function KYCBanner({ userId, setScreen }) {
   );
 }
 
+// ─── Dashboard Screen ──────────────────────────────────────────────────────
 function DashboardScreen({ user, onLogout, setScreen }) {
   const [profile, setProfile] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -393,6 +399,7 @@ function DashboardScreen({ user, onLogout, setScreen }) {
         </div>
       </div>
 
+      {/* KYC Status Banner */}
       <div style={{ padding: "0 24px" }}>
         <KYCBanner userId={user.id} setScreen={setScreen} />
       </div>
@@ -458,6 +465,7 @@ function DashboardScreen({ user, onLogout, setScreen }) {
   );
 }
 
+// ─── Topup Screen ──────────────────────────────────────────────────────────
 function TopupScreen({ user, onSuccess }) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -567,6 +575,7 @@ function TopupScreen({ user, onSuccess }) {
   );
 }
 
+// ─── Card Screen ───────────────────────────────────────────────────────────
 function CardScreen({ user, profile }) {
   const name = profile?.full_name || user?.user_metadata?.full_name || "SuriPay Gebruiker";
   return (
@@ -616,6 +625,7 @@ function CardScreen({ user, profile }) {
   );
 }
 
+// ─── QR Screen ─────────────────────────────────────────────────────────────
 function QRScreen({ user, profile }) {
   const name = profile?.full_name || user?.user_metadata?.full_name || "SuriPay Gebruiker";
   return (
@@ -658,24 +668,19 @@ function KYCScreen({ user }) {
   const [idFront, setIdFront] = useState(null);
   const [idBack, setIdBack] = useState(null);
   const [selfie, setSelfie] = useState(null);
-  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [kycStatus, setKycStatus] = useState(null);
-  const [kycId, setKycId] = useState(null);
 
   useEffect(() => {
     const checkStatus = async () => {
       const { data } = await supabase
         .from("kyc_submissions")
-        .select("id, status")
+        .select("status")
         .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
-        setKycStatus(data.status);
-        setKycId(data.id);
-      }
+        .single();
+      if (data) setKycStatus(data.status);
     };
     checkStatus();
   }, [user.id]);
@@ -689,8 +694,6 @@ function KYCScreen({ user }) {
   };
 
   const handleSubmit = async () => {
-    if (!whatsapp || whatsapp.length < 7) { setError("Voer een geldig WhatsApp nummer in"); return; }
-    if (!idFront || !idBack || !selfie) { setError("Upload alle vereiste documenten"); return; }
     setLoading(true);
     setError(null);
     try {
@@ -698,37 +701,15 @@ function KYCScreen({ user }) {
       const frontPath = await uploadFile(idFront, `${uid}/id_front.jpg`);
       const backPath = await uploadFile(idBack, `${uid}/id_back.jpg`);
       const selfiePath = await uploadFile(selfie, `${uid}/selfie.jpg`);
-
-      let dbError;
-      if (kycId) {
-        // Update bestaande rij
-        const { error } = await supabase
-          .from("kyc_submissions")
-          .update({
-            id_front_url: frontPath,
-            id_back_url: backPath,
-            selfie_url: selfiePath,
-            whatsapp,
-            status: "pending",
-            submitted_at: new Date().toISOString(),
-          })
-          .eq("id", kycId);
-        dbError = error;
-      } else {
-        // Nieuwe rij aanmaken
-        const { error } = await supabase
-          .from("kyc_submissions")
-          .insert({
-            user_id: uid,
-            id_front_url: frontPath,
-            id_back_url: backPath,
-            selfie_url: selfiePath,
-            whatsapp,
-            status: "pending",
-          });
-        dbError = error;
-      }
-
+      const { error: dbError } = await supabase
+        .from("kyc_submissions")
+        .upsert({
+          user_id: uid,
+          id_front_url: frontPath,
+          id_back_url: backPath,
+          selfie_url: selfiePath,
+          status: "pending",
+        });
       if (dbError) throw dbError;
       setSuccess(true);
       setKycStatus("pending");
@@ -746,7 +727,6 @@ function KYCScreen({ user }) {
   };
 
   const banner = statusBanner();
-  const isDisabled = loading || !idFront || !idBack || !selfie || !whatsapp;
 
   return (
     <div style={{
@@ -765,7 +745,7 @@ function KYCScreen({ user }) {
         }}>{banner.text}</div>
       )}
 
-      {kycStatus !== "approved" && (
+      {(kycStatus === "approved") ? null : (
         <>
           {[
             { label: "Voorkant ID", setter: setIdFront, value: idFront },
@@ -792,35 +772,6 @@ function KYCScreen({ user }) {
             </div>
           ))}
 
-          {/* WhatsApp veld */}
-          <div style={{
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 16, padding: "16px", marginBottom: 16,
-          }}>
-            <div style={{ color: "#8aa4c8", fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
-              WHATSAPP NUMMER
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 20 }}>📱</span>
-              <input
-                type="tel"
-                placeholder="+597 8XX XXXX"
-                value={whatsapp}
-                onChange={e => setWhatsapp(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 12, padding: "12px 14px", color: "#fff",
-                  fontSize: 14, outline: "none", boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <div style={{ color: "#6b8ab0", fontSize: 11, marginTop: 6 }}>
-              Wij gebruiken dit alleen voor verificatiecontact
-            </div>
-          </div>
-
           {error && (
             <div style={{
               background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)",
@@ -832,13 +783,15 @@ function KYCScreen({ user }) {
           {!success && (
             <button
               onClick={handleSubmit}
-              disabled={isDisabled}
+              disabled={loading || !idFront || !idBack || !selfie}
               style={{
                 width: "100%",
-                background: isDisabled ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #00d4aa, #0099ff)",
+                background: (!idFront || !idBack || !selfie)
+                  ? "rgba(255,255,255,0.1)"
+                  : "linear-gradient(135deg, #00d4aa, #0099ff)",
                 border: "none", borderRadius: 14, padding: "16px",
                 color: "#fff", fontSize: 16, fontWeight: 800,
-                cursor: isDisabled ? "not-allowed" : "pointer",
+                cursor: (!idFront || !idBack || !selfie) ? "not-allowed" : "pointer",
                 boxShadow: "0 4px 24px rgba(0,212,170,0.25)",
               }}
             >
@@ -860,6 +813,7 @@ function KYCScreen({ user }) {
   );
 }
 
+// ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState(SCREENS.LOGIN);
   const [user, setUser] = useState(null);
