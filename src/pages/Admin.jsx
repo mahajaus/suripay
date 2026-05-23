@@ -434,6 +434,99 @@ function KYCTab() {
   );
 }
 
+function UsersTab() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const [toast, setToast] = useState({ message: null, type: "success" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: null }), 3000);
+  };
+
+  const fetchUsers = useCallback(async () => {
+    const { data } = await supabase.from("users").select("*").order("created_at", { ascending: false });
+    if (data) { setUsers(data); setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const handleDelete = async (userId) => {
+    setDeleting(userId);
+    const { error } = await supabase.rpc("delete_user", { user_id: userId });
+    setDeleting(null);
+    setConfirm(null);
+    if (error) { showToast("Fout bij verwijderen: " + error.message, "error"); return; }
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    showToast("✅ Gebruiker verwijderd!", "success");
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <StatCard icon="👥" label="Totaal gebruikers" value={users.length} accent="#0099ff" />
+      </div>
+
+      <Toast {...toast} />
+
+      {confirm && (
+        <div style={{ background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+          <div style={{ color: "#ff6b6b", fontWeight: 800, fontSize: 15, marginBottom: 8 }}>⚠️ Gebruiker verwijderen?</div>
+          <div style={{ color: "#8aa4c8", fontSize: 13, marginBottom: 16 }}>
+            Dit verwijdert alle data van deze gebruiker. Dit kan niet ongedaan worden gemaakt!
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => handleDelete(confirm)} disabled={deleting === confirm} style={{ flex: 1, background: "rgba(255,80,80,0.8)", border: "none", borderRadius: 12, padding: "12px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+              {deleting === confirm ? "Verwijderen..." : "Ja, verwijder"}
+            </button>
+            <button onClick={() => setConfirm(null)} style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+              Annuleren
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: "center", color: "#6b8ab0", padding: "40px 0" }}>Laden...</div>
+      ) : users.length === 0 ? (
+        <div style={{ textAlign: "center", color: "#6b8ab0", padding: "40px 0", fontSize: 13 }}>Geen gebruikers gevonden</div>
+      ) : (
+        users.map(user => (
+          <div key={user.id} style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                {user.full_name || "Geen naam"}
+              </div>
+              <div style={{ color: "#6b8ab0", fontSize: 11, marginBottom: 2 }}>{user.id?.slice(0, 20)}...</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <span style={{ background: "rgba(0,212,170,0.1)", color: "#00d4aa", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                  SRD {(user.balance_srd || 0).toFixed(2)}
+                </span>
+                <span style={{ background: "rgba(0,153,255,0.1)", color: "#0099ff", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>
+                  USD {(user.balance_usd || 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <button onClick={() => setConfirm(user.id)} style={{
+              background: "rgba(255,80,80,0.1)", border: "1px solid rgba(255,80,80,0.3)",
+              borderRadius: 10, padding: "8px 14px", color: "#ff6b6b",
+              fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}>
+              🗑️ Verwijder
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("overview");
@@ -513,6 +606,7 @@ export default function App() {
         {tab === "generate" && <GenerateTab onGenerate={handleGenerate} loading={loading} />}
         {tab === "validate" && <ValidateTab />}
         {tab === "kyc" && <KYCTab />}
+        {tab === "users" && <UsersTab />}
       </div>
     </div>
   );
