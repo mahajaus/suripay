@@ -379,15 +379,38 @@ function KYCTab() {
             <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: "#6b8ab0", fontSize: 18, cursor: "pointer" }}>✕</button>
           </div>
 
+          {/* User ID */}
           <div style={{ color: "#8aa4c8", fontSize: 11, marginBottom: 4 }}>USER ID</div>
-          <div style={{ color: "#fff", fontSize: 12, fontFamily: "monospace", marginBottom: 16 }}>{selected.user_id}</div>
+          <div style={{ color: "#fff", fontSize: 12, fontFamily: "monospace", marginBottom: 12 }}>{selected.user_id}</div>
 
+          {/* WhatsApp */}
+          {selected.whatsapp && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "#8aa4c8", fontSize: 11, marginBottom: 6 }}>WHATSAPP</div>
+              <a
+                href={`https://wa.me/${selected.whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  background: "rgba(37,211,102,0.15)", border: "1px solid rgba(37,211,102,0.3)",
+                  borderRadius: 10, padding: "8px 14px", color: "#25d366",
+                  fontSize: 13, fontWeight: 700, textDecoration: "none",
+                }}
+              >
+                📱 {selected.whatsapp} — Direct openen
+              </a>
+            </div>
+          )}
+
+          {/* Foto's */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
             <SignedImage label="Voorkant ID" path={selected.id_front_url} />
             <SignedImage label="Achterkant ID" path={selected.id_back_url} />
             <SignedImage label="Selfie met ID" path={selected.selfie_url} />
           </div>
 
+          {/* Notities */}
           <label style={{ color: "#8aa4c8", fontSize: 11, fontWeight: 700 }}>NOTITIES (OPTIONEEL)</label>
           <textarea
             value={notes}
@@ -396,6 +419,7 @@ function KYCTab() {
             style={{ width: "100%", marginTop: 8, marginBottom: 16, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box", resize: "vertical", minHeight: 60 }}
           />
 
+          {/* Acties */}
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => handleAction("approved")} disabled={actionLoading} style={{ flex: 1, background: "linear-gradient(135deg, #00d4aa, #0099ff)", border: "none", borderRadius: 12, padding: "12px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
               {actionLoading ? "Opslaan..." : "✅ Goedkeuren"}
@@ -407,6 +431,7 @@ function KYCTab() {
         </div>
       )}
 
+      {/* Lijst */}
       {loading ? (
         <div style={{ textAlign: "center", color: "#6b8ab0", padding: "40px 0" }}>Laden...</div>
       ) : submissions.length === 0 ? (
@@ -422,9 +447,14 @@ function KYCTab() {
               <div style={{ color: "#fff", fontSize: 12, fontFamily: "monospace", marginBottom: 4 }}>
                 {sub.user_id?.slice(0, 16)}...
               </div>
-              <div style={{ color: "#6b8ab0", fontSize: 11 }}>
+              <div style={{ color: "#6b8ab0", fontSize: 11, marginBottom: 2 }}>
                 {new Date(sub.submitted_at).toLocaleDateString("nl-SR")}
               </div>
+              {sub.whatsapp && (
+                <div style={{ color: "#25d366", fontSize: 11, fontWeight: 600 }}>
+                  📱 {sub.whatsapp}
+                </div>
+              )}
             </div>
             {statusBadge(sub.status)}
           </div>
@@ -434,6 +464,7 @@ function KYCTab() {
   );
 }
 
+// ─── Users Tab ─────────────────────────────────────────────────────────────
 function UsersTab() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -590,7 +621,7 @@ export default function App() {
             { id: "validate", label: "🔍 Valideren" },
             { id: "kyc", label: "🪪 KYC" },
             { id: "users", label: "👥 Gebruikers" },
-             ].map(t => (
+          ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               flex: 1, padding: "10px 4px",
               background: "transparent", border: "none",

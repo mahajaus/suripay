@@ -668,6 +668,7 @@ function KYCScreen({ user }) {
   const [idFront, setIdFront] = useState(null);
   const [idBack, setIdBack] = useState(null);
   const [selfie, setSelfie] = useState(null);
+  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -694,6 +695,7 @@ function KYCScreen({ user }) {
   };
 
   const handleSubmit = async () => {
+    if (!whatsapp || whatsapp.length < 7) { setError("Voer een geldig WhatsApp nummer in"); return; }
     setLoading(true);
     setError(null);
     try {
@@ -708,6 +710,7 @@ function KYCScreen({ user }) {
           id_front_url: frontPath,
           id_back_url: backPath,
           selfie_url: selfiePath,
+          whatsapp,
           status: "pending",
         });
       if (dbError) throw dbError;
