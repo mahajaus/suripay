@@ -278,8 +278,6 @@ function KYCTab() {
 
   useEffect(() => {
     fetchSubmissions();
-    const interval = setInterval(fetchSubmissions, 5000);
-    return () => clearInterval(interval);
   }, [fetchSubmissions]);
 
   const getImageUrl = (path) => {
