@@ -147,7 +147,6 @@ function GenerateTab({ onGenerate, loading }) {
     <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "24px" }}>
       <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, marginBottom: 4 }}>⚡ Nieuwe batch aanmaken</div>
       <div style={{ color: "#6b8ab0", fontSize: 12, marginBottom: 20 }}>Codes worden direct opgeslagen in Supabase</div>
-
       <label style={{ color: "#8aa4c8", fontSize: 11, fontWeight: 700, letterSpacing: "0.5px" }}>AANTAL KAARTEN</label>
       <div style={{ display: "flex", gap: 8, marginTop: 8, marginBottom: 20 }}>
         {[5, 10, 25, 50].map(n => (
@@ -160,7 +159,6 @@ function GenerateTab({ onGenerate, loading }) {
           }}>{n}</button>
         ))}
       </div>
-
       <label style={{ color: "#8aa4c8", fontSize: 11, fontWeight: 700, letterSpacing: "0.5px" }}>WAARDE PER KAART</label>
       <div style={{ display: "flex", gap: 10, marginTop: 8, marginBottom: 20 }}>
         {[50, 100, 250].map(v => {
@@ -176,7 +174,6 @@ function GenerateTab({ onGenerate, loading }) {
           );
         })}
       </div>
-
       <div style={{
         background: "rgba(0,212,170,0.08)", border: "1px solid rgba(0,212,170,0.2)",
         borderRadius: 12, padding: "12px 16px",
@@ -185,7 +182,6 @@ function GenerateTab({ onGenerate, loading }) {
         <div style={{ color: "#6b8ab0", fontSize: 12 }}>{count} kaarten × SRD {value}</div>
         <div style={{ color: "#00d4aa", fontSize: 16, fontWeight: 900 }}>= SRD {count * value}</div>
       </div>
-
       <button onClick={() => onGenerate(count, value)} disabled={loading} style={{
         width: "100%",
         background: loading ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #00d4aa, #0099ff)",
@@ -270,25 +266,26 @@ function KYCTab() {
   };
 
   const fetchSubmissions = useCallback(async () => {
-    setLoading(true);
     const { data } = await supabase
       .from("kyc_submissions")
       .select("*")
       .order("submitted_at", { ascending: false });
-    setSubmissions(data || []);
-    setLoading(false);
+    if (data) {
+      setSubmissions(data);
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { 
-    fetchSubmissions(); 
+  useEffect(() => {
+    fetchSubmissions();
     const interval = setInterval(fetchSubmissions, 5000);
     return () => clearInterval(interval);
-}, [fetchSubmissions]);
+  }, [fetchSubmissions]);
 
   const getImageUrl = (path) => {
-  if (!path) return null;
-  return `${SUPABASE_URL}/storage/v1/object/public/kyc-documents/${path}`;
-};
+    if (!path) return null;
+    return `${SUPABASE_URL}/storage/v1/object/public/kyc-documents/${path}`;
+  };
 
   const handleAction = async (status) => {
     if (!selected) return;
@@ -304,17 +301,25 @@ function KYCTab() {
       .eq("id", selected.id);
     setActionLoading(false);
     if (error) { showToast("Fout bij opslaan", "error"); return; }
-    showToast(status === "approved" ? "✅ KYC goedgekeurd!" : "❌ KYC afgekeurd", status === "approved" ? "success" : "error");
+
+    // Update lokaal direct
+    setSubmissions(prev => prev.map(s =>
+      s.id === selected.id ? { ...s, status, notes } : s
+    ));
+
+    showToast(
+      status === "approved" ? "✅ KYC goedgekeurd!" : "❌ KYC afgekeurd",
+      status === "approved" ? "success" : "error"
+    );
     setSelected(null);
     setNotes("");
-    await fetchSubmissions();
   };
 
   const statusBadge = (status) => {
     const map = {
       pending:  { bg: "rgba(255,180,0,0.15)", color: "#ffb400", label: "⏳ In behandeling" },
       approved: { bg: "rgba(0,212,170,0.15)", color: "#00d4aa", label: "✅ Goedgekeurd" },
-      rejected: { bg: "rgba(255,80,80,0.15)",  color: "#ff6b6b", label: "❌ Afgekeurd" },
+      rejected: { bg: "rgba(255,80,80,0.15)", color: "#ff6b6b", label: "❌ Afgekeurd" },
     };
     const s = map[status] || map.pending;
     return (
@@ -325,7 +330,7 @@ function KYCTab() {
   };
 
   const stats = {
-    pending: submissions.filter(s => s.status === "pending").length,
+    pending:  submissions.filter(s => s.status === "pending").length,
     approved: submissions.filter(s => s.status === "approved").length,
     rejected: submissions.filter(s => s.status === "rejected").length,
   };
@@ -340,7 +345,6 @@ function KYCTab() {
 
       <Toast {...toast} />
 
-      {/* Detail view */}
       {selected && (
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 20, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -394,7 +398,6 @@ function KYCTab() {
         </div>
       )}
 
-      {/* List */}
       {loading ? (
         <div style={{ textAlign: "center", color: "#6b8ab0", padding: "40px 0" }}>Laden...</div>
       ) : submissions.length === 0 ? (
