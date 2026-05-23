@@ -251,6 +251,41 @@ function ValidateTab() {
   );
 }
 
+// ─── Signed Image Component ────────────────────────────────────────────────
+function SignedImage({ label, path }) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    if (!path) return;
+    supabase.storage
+      .from("kyc-documents")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => { if (data) setUrl(data.signedUrl); });
+  }, [path]);
+
+  return (
+    <div>
+      <div style={{ color: "#8aa4c8", fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
+        {label.toUpperCase()}
+      </div>
+      {url ? (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img
+            src={url}
+            alt={label}
+            style={{ width: "100%", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}
+            onError={e => e.target.style.display = "none"}
+          />
+        </a>
+      ) : (
+        <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 20, textAlign: "center", color: "#4a6080", fontSize: 11 }}>
+          {path ? "Laden..." : "Geen foto"}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── KYC Tab ───────────────────────────────────────────────────────────────
 function KYCTab() {
   const [submissions, setSubmissions] = useState([]);
@@ -280,11 +315,6 @@ function KYCTab() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
-  const getImageUrl = (path) => {
-    if (!path) return null;
-    return `${SUPABASE_URL}/storage/v1/object/public/kyc-documents/${path}`;
-  };
-
   const handleAction = async (status) => {
     if (!selected) return;
     setActionLoading(true);
@@ -300,7 +330,6 @@ function KYCTab() {
     setActionLoading(false);
     if (error) { showToast("Fout bij opslaan", "error"); return; }
 
-    // Update lokaal direct
     setSubmissions(prev => prev.map(s =>
       s.id === selected.id ? { ...s, status, notes } : s
     ));
@@ -354,27 +383,9 @@ function KYCTab() {
           <div style={{ color: "#fff", fontSize: 12, fontFamily: "monospace", marginBottom: 16 }}>{selected.user_id}</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
-            {[
-              { label: "Voorkant ID", path: selected.id_front_url },
-              { label: "Achterkant ID", path: selected.id_back_url },
-              { label: "Selfie met ID", path: selected.selfie_url },
-            ].map((doc, i) => (
-              <div key={i}>
-                <div style={{ color: "#8aa4c8", fontSize: 10, fontWeight: 700, marginBottom: 6 }}>{doc.label.toUpperCase()}</div>
-                {doc.path ? (
-                  <a href={getImageUrl(doc.path)} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={getImageUrl(doc.path)}
-                      alt={doc.label}
-                      style={{ width: "100%", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}
-                      onError={e => e.target.style.display = "none"}
-                    />
-                  </a>
-                ) : (
-                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 20, textAlign: "center", color: "#4a6080", fontSize: 11 }}>Geen foto</div>
-                )}
-              </div>
-            ))}
+            <SignedImage label="Voorkant ID" path={selected.id_front_url} />
+            <SignedImage label="Achterkant ID" path={selected.id_back_url} />
+            <SignedImage label="Selfie met ID" path={selected.selfie_url} />
           </div>
 
           <label style={{ color: "#8aa4c8", fontSize: 11, fontWeight: 700 }}>NOTITIES (OPTIONEEL)</label>
