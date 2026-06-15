@@ -7,6 +7,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<string>("0.00");
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [tier, setTier] = useState<any>(null);
+  const [receivedThisYear, setReceivedThisYear] = useState<number>(0);
 
   useEffect(() => {
     const getData = async () => {
@@ -19,12 +21,21 @@ export default function DashboardPage() {
 
       const { data: wallet } = await supabase
         .from("wallets")
-        .select("id, balance")
+        .select(
+          "id, balance, received_this_year, kyc_tiers ( name, display_name, max_balance, annual_receive_limit )"
+        )
         .eq("user_id", userData.user.id)
         .single();
 
       if (wallet) {
         setBalance(Number(wallet.balance).toFixed(2));
+        setReceivedThisYear(Number(wallet.received_this_year ?? 0));
+
+        // Embedded relatie kan als object of (afhankelijk van detectie) als array terugkomen.
+        const tierData = Array.isArray(wallet.kyc_tiers)
+          ? wallet.kyc_tiers[0]
+          : wallet.kyc_tiers;
+        if (tierData) setTier(tierData);
 
         const { data: txs } = await supabase.rpc("get_my_transactions", {
           p_wallet_id: wallet.id,
@@ -72,6 +83,79 @@ export default function DashboardPage() {
           <h2 className="text-4xl font-bold mb-1">SRD {balance}</h2>
           <p className="text-sm opacity-70">SuriPay Wallet</p>
         </div>
+
+        {tier && (
+          <div className="rounded-2xl p-5 mb-6"
+            style={{ backgroundColor: "white" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold"
+                style={{ color: "var(--neutral-900)" }}>
+                KYC-niveau
+              </h3>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full uppercase"
+                style={{ backgroundColor: "var(--brand-light)",
+                         color: "var(--brand-green)" }}>
+                {tier.name}
+              </span>
+            </div>
+
+            <p className="text-sm font-medium mb-4"
+              style={{ color: "var(--neutral-800)" }}>
+              {tier.display_name}
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span style={{ color: "var(--neutral-600)" }}>Max saldo</span>
+                <span className="font-medium"
+                  style={{ color: "var(--neutral-900)" }}>
+                  SRD {Number(tier.max_balance).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span style={{ color: "var(--neutral-600)" }}>
+                  Jaarlijkse ontvangstruimte
+                </span>
+                <span className="font-medium"
+                  style={{ color: "var(--neutral-900)" }}>
+                  SRD {Number(tier.annual_receive_limit).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span style={{ color: "var(--neutral-600)" }}>
+                  Al ontvangen dit jaar
+                </span>
+                <span className="font-medium"
+                  style={{ color: "var(--neutral-900)" }}>
+                  SRD {receivedThisYear.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {Number(tier.annual_receive_limit) > 0 && (
+              <div className="mt-4">
+                <div className="h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: "var(--neutral-100)" }}>
+                  <div className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        (receivedThisYear / Number(tier.annual_receive_limit)) * 100
+                      )}%`,
+                      backgroundColor: "var(--brand-green)",
+                    }} />
+                </div>
+                <p className="text-xs mt-1"
+                  style={{ color: "var(--neutral-400)" }}>
+                  Nog SRD {Math.max(
+                    0,
+                    Number(tier.annual_receive_limit) - receivedThisYear
+                  ).toFixed(2)} te ontvangen dit jaar
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
@@ -123,10 +207,13 @@ export default function DashboardPage() {
                     )}
                     <p className="text-xs"
                       style={{ color: "var(--neutral-400)" }}>
-                      {new Date(tx.created_at).toLocaleDateString("nl-NL", {
+                      {new Date(tx.created_at).toLocaleString("nl-NL", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
                       })}
                     </p>
                   </div>
