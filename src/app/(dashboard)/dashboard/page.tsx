@@ -69,12 +69,20 @@ export default function DashboardPage() {
               {user.user_metadata?.full_name || user.email}
             </h1>
           </div>
-          <button onClick={handleLogout}
-            className="text-sm px-4 py-2 rounded-xl"
-            style={{ backgroundColor: "var(--brand-light)",
-                     color: "var(--brand-green)" }}>
-            Uitloggen
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.location.href = "/profiel"}
+              className="text-sm px-4 py-2 rounded-xl"
+              style={{ backgroundColor: "var(--brand-light)",
+                       color: "var(--brand-green)" }}>
+              Profiel
+            </button>
+            <button onClick={handleLogout}
+              className="text-sm px-4 py-2 rounded-xl"
+              style={{ backgroundColor: "var(--brand-light)",
+                       color: "var(--brand-green)" }}>
+              Uitloggen
+            </button>
+          </div>
         </div>
 
         <div className="rounded-2xl p-6 mb-6 text-white"
