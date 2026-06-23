@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { pin, amount, receiver_email } = await req.json();
+    const { pin, amount, receiver_email, description } = await req.json();
     const token = req.headers.get('authorization')?.split(' ')[1];
 
     if (!token || !pin || !amount || !receiver_email) {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       p_sender_wallet_id: senderWallet.id,
       p_receiver_wallet_id: receiver.wallet_id,
       p_amount: amountNum,
-      p_description: `Transfer to ${receiver.full_name}`
+      p_description: description || `Transfer to ${receiver.full_name}`
     });
 
     // transfer_money returns { success, transaction_id } or { success: false, error }.

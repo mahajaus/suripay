@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import bcrypt from "bcryptjs";
 
 export default function SturenPage() {
   const [step, setStep] = useState<"email" | "amount" | "pin" | "done">("email");
@@ -16,7 +15,6 @@ export default function SturenPage() {
 
   const [myWalletId, setMyWalletId] = useState("");
   const [balance, setBalance] = useState(0);
-  const [receiverWalletId, setReceiverWalletId] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [pinHash, setPinHash] = useState("");
 
@@ -53,7 +51,6 @@ export default function SturenPage() {
         });
         if (!error && data?.found && data.wallet_id !== myId) {
           setEmail(toParam);
-          setReceiverWalletId(data.wallet_id);
           setReceiverName(data.full_name);
           if (amountParam) setAmount(amountParam);
           setStep("amount");
@@ -80,7 +77,6 @@ export default function SturenPage() {
       setError("Je kunt geen geld naar jezelf sturen.");
       return;
     }
-    setReceiverWalletId(data.wallet_id);
     setReceiverName(data.full_name);
     setStep("amount");
   };
@@ -112,9 +108,15 @@ export default function SturenPage() {
 
     if (newPin.length === 6) {
       setLoading(true);
-      const match = await bcrypt.compare(newPin, pinHash);
-      if (!match) {
-        setError("Verkeerde PIN.");
+
+      // De PIN wordt server-side geverifieerd; de transfer loopt via de
+      // route handler met de service-role (RLS-bypass), niet meer client-side.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setError("Sessie verlopen. Log opnieuw in.");
         setPin("");
         setLoading(false);
         return;
@@ -122,14 +124,23 @@ export default function SturenPage() {
 
       const roundedAmount = Math.round(Number(amount) * 100) / 100;
 
-      const { data, error } = await supabase.rpc("transfer_money", {
-        p_sender_wallet_id: myWalletId,
-        p_receiver_wallet_id: receiverWalletId,
-        p_amount: roundedAmount,
-        p_description: description || null,
+      const res = await fetch("/api/transfers/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          pin: newPin,
+          amount: roundedAmount,
+          receiver_email: email,
+          description: description || null,
+        }),
       });
 
-      if (error || !data?.success) {
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
         setError(data?.error || "Transactie mislukt.");
         setPin("");
         setLoading(false);
