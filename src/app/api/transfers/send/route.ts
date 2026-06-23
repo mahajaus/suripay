@@ -16,6 +16,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    }
+
     // Get sender from token
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
@@ -39,32 +44,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid PIN' }, { status: 401 });
     }
 
-    // Get receiver wallet
+    // Get receiver wallet (RPC returns a JSON object: { found, wallet_id, full_name })
     const { data: receiver } = await supabase.rpc('find_wallet_by_email', { p_email: receiver_email });
-    if (!receiver || receiver.length === 0) {
+    if (!receiver?.found) {
       return NextResponse.json({ error: 'Receiver not found' }, { status: 404 });
     }
 
-    const receiverWallet = receiver[0];
-
     // Check balance
-    if (senderWallet.balance < amount) {
+    if (senderWallet.balance < amountNum) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
 
     // Execute transfer via RPC (SECURITY DEFINER — server-side only)
     const { data: result, error: transferError } = await supabase.rpc('transfer_money', {
       p_sender_wallet_id: senderWallet.id,
-      p_receiver_wallet_id: receiverWallet.wallet_id,
-      p_amount: amount,
-      p_description: `Transfer to ${receiverWallet.email}`
+      p_receiver_wallet_id: receiver.wallet_id,
+      p_amount: amountNum,
+      p_description: `Transfer to ${receiver.full_name}`
     });
 
-    if (transferError) {
-      return NextResponse.json({ error: transferError.message }, { status: 400 });
+    // transfer_money returns { success, transaction_id } or { success: false, error }.
+    // Business-rule rejections do NOT set transferError, so check result.success too.
+    if (transferError || !result?.success) {
+      return NextResponse.json(
+        { error: result?.error ?? transferError?.message ?? 'Transfer failed' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ success: true, transaction_id: result }, { status: 200 });
+    return NextResponse.json({ success: true, transaction_id: result.transaction_id }, { status: 200 });
 
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
