@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function SturenPage() {
+function SturenInner() {
   const [step, setStep] = useState<"email" | "amount" | "pin" | "done">("email");
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState("");
@@ -308,5 +308,13 @@ export default function SturenPage() {
 
       </div>
     </main>
+  );
+}
+
+export default function SturenPage() {
+  return (
+    <Suspense fallback={null}>
+      <SturenInner />
+    </Suspense>
   );
 }
