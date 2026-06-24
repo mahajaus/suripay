@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { APP_BG, SP, IS, BT } from "@/lib/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -14,97 +15,91 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("Verkeerd e-mailadres of wachtwoord.");
       setLoading(false);
       return;
     }
-
-    window.location.href = "/dashboard";
+    window.location.href = "/home";
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: "var(--brand-light)" }}>
-      <div className="w-full max-w-sm">
-
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold"
-            style={{ color: "var(--brand-green)" }}>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: APP_BG,
+        fontFamily: "system-ui,sans-serif",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <form onSubmit={handleLogin} style={{ width: "100%", maxWidth: 360 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 40, marginBottom: 6 }}>🇸🇷</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: SP.gold }}>
             SuriPay
-          </h1>
-          <p className="text-sm mt-1"
-            style={{ color: "var(--neutral-600)" }}>
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.4, marginTop: 2 }}>
             Welkom terug
-          </p>
+          </div>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-sm"
-          style={{ backgroundColor: "white" }}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1"
-              style={{ color: "var(--neutral-800)" }}>
-              E-mailadres
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jouw@email.com"
-              className="w-full px-4 py-3 rounded-xl border text-sm outline-none"
-              style={{ borderColor: "var(--neutral-400)",
-                       color: "var(--neutral-900)" }}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-1"
-              style={{ color: "var(--neutral-800)" }}>
-              Wachtwoord
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl border text-sm outline-none"
-              style={{ borderColor: "var(--neutral-400)",
-                       color: "var(--neutral-900)" }}
-            />
-          </div>
-
+        <div
+          style={{
+            background: "rgba(255,255,255,.06)",
+            border: "1px solid rgba(255,255,255,.1)",
+            borderRadius: 20,
+            padding: 22,
+          }}
+        >
+          <label style={{ fontSize: 12, opacity: 0.6 }}>E-mailadres</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="jouw@email.com"
+            style={{ ...IS, margin: "6px 0 14px" }}
+          />
+          <label style={{ fontSize: 12, opacity: 0.6 }}>Wachtwoord</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            style={{ ...IS, margin: "6px 0 16px" }}
+          />
           {error && (
-            <p className="text-sm mb-4 text-red-500">{error}</p>
+            <p style={{ color: SP.red, fontSize: 13, marginBottom: 12 }}>
+              {error}
+            </p>
           )}
-
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm"
-            style={{ backgroundColor: loading
-              ? "var(--neutral-400)"
-              : "var(--brand-green)" }}>
+            style={BT(loading ? "rgba(255,255,255,.2)" : SP.gold, SP.ink)}
+          >
             {loading ? "Bezig..." : "Inloggen"}
           </button>
         </div>
 
-        <p className="text-center text-sm mt-4"
-          style={{ color: "var(--neutral-600)" }}>
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 13,
+            opacity: 0.7,
+            marginTop: 16,
+          }}
+        >
           Nog geen account?{" "}
-          <Link href="/register"
-            style={{ color: "var(--brand-green)" }}
-            className="font-semibold">
+          <Link href="/register" style={{ color: SP.gold, fontWeight: 700 }}>
             Registreren
           </Link>
         </p>
-
-      </div>
+      </form>
     </main>
   );
 }

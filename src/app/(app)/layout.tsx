@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { APP_BG, SP } from "@/lib/ui";
 
 // Onderste navigatiebalk — 5 hoofdbestemmingen, exact zoals de mockup.
@@ -15,6 +17,35 @@ const NAV = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  // Auth-poort: alleen ingelogde gebruikers zien de app-shell.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) router.replace("/login");
+      else setReady(true);
+    });
+  }, [router]);
+
+  if (!ready) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: APP_BG,
+          fontFamily: "system-ui,sans-serif",
+          color: "rgba(255,255,255,.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+        }}
+      >
+        Laden…
+      </div>
+    );
+  }
 
   return (
     <div

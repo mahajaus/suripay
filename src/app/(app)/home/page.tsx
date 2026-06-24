@@ -27,7 +27,7 @@ type Tx = { id: string; a: number; d: string; ty: string; dt: string };
 // de rest toont voorlopig een "binnenkort" melding.
 const ACTIONS: { ic: string; l: string; c: string; href?: string }[] = [
   { ic: "💳", l: "Opwaarderen", c: "#25D366" },
-  { ic: "↑", l: "Versturen", c: "#25D366" },
+  { ic: "↑", l: "Versturen", c: "#25D366", href: "/versturen" },
   { ic: "📩", l: "Aanvragen", c: "#E6B800" },
   { ic: "📱", l: "QR", c: "#E6B800", href: "/qr" },
   { ic: "🧾", l: "Rekeningen", c: "#3b82f6", href: "/rekeningen" },
