@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import bcrypt from "bcryptjs";
 import { SP, BT } from "@/lib/ui";
 import PinPad from "@/components/PinPad";
 
@@ -12,7 +11,7 @@ type Phase = "current" | "new" | "confirm" | "done";
 export default function PinPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("new");
-  const [pinHash, setPinHash] = useState("");
+  const [hasPin, setHasPin] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -28,45 +27,66 @@ export default function PinPage() {
         .eq("user_id", user.id)
         .single();
       if (wallet?.pin_hash) {
-        setPinHash(wallet.pin_hash);
+        setHasPin(true);
         setPhase("current");
       }
     });
   }, []);
 
+  const save = async (currentPin: string, newPin: string) => {
+    setLoading(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch("/api/pin/set", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPin: hasPin ? currentPin : undefined, newPin }),
+    });
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok || !data?.success) {
+      if (data?.error?.includes("Huidige PIN")) {
+        setError("Huidige PIN is onjuist.");
+        setCurrent("");
+        setNext("");
+        setConfirm("");
+        setPhase("current");
+      } else {
+        setError(data?.error || "Er ging iets mis. Probeer opnieuw.");
+        setNext("");
+        setConfirm("");
+        setPhase("new");
+      }
+      return;
+    }
+    setPhase("done");
+  };
+
   const value =
     phase === "current" ? current : phase === "new" ? next : confirm;
 
-  // Alle PIN-logica in de event-handler (geen setState-in-effect).
-  const onDigit = async (d: string) => {
+  const onDigit = (d: string) => {
     setError("");
     if (loading || value.length >= 6) return;
 
     if (phase === "current") {
       const v = current + d;
       setCurrent(v);
-      if (v.length < 6) return;
-      setLoading(true);
-      const ok = await bcrypt.compare(v, pinHash);
-      setLoading(false);
-      if (!ok) {
-        setError("Huidige PIN is onjuist.");
-        setCurrent("");
-        return;
-      }
-      setCurrent("");
-      setPhase("new");
+      if (v.length === 6) setPhase("new");
       return;
     }
-
     if (phase === "new") {
       const v = next + d;
       setNext(v);
       if (v.length === 6) setPhase("confirm");
       return;
     }
-
-    // phase === "confirm"
     const v = confirm + d;
     setConfirm(v);
     if (v.length < 6) return;
@@ -77,25 +97,9 @@ export default function PinPage() {
       setPhase("new");
       return;
     }
-    setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const hash = await bcrypt.hash(next, 10);
-    const { error } = await supabase
-      .from("wallets")
-      .update({ pin_hash: hash })
-      .eq("user_id", user!.id);
-    setLoading(false);
-    if (error) {
-      setError("Er ging iets mis. Probeer opnieuw.");
-      setNext("");
-      setConfirm("");
-      setPhase("new");
-      return;
-    }
-    setPhase("done");
+    save(current, next);
   };
+
   const onDelete = () => {
     if (phase === "current") setCurrent(current.slice(0, -1));
     else if (phase === "new") setNext(next.slice(0, -1));
@@ -126,14 +130,7 @@ export default function PinPage() {
           }}
         >
           <div style={{ fontSize: 48 }}>✅</div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 800,
-              color: SP.green,
-              margin: "10px 0 18px",
-            }}
-          >
+          <div style={{ fontSize: 18, fontWeight: 800, color: SP.green, margin: "10px 0 18px" }}>
             Je PIN is ingesteld
           </div>
           <button
@@ -145,20 +142,11 @@ export default function PinPage() {
         </div>
       ) : (
         <>
-          <p style={{ fontSize: 13, opacity: 0.6, margin: "8px 0 24px" }}>
-            {title}
-          </p>
+          <p style={{ fontSize: 13, opacity: 0.6, margin: "8px 0 24px" }}>{title}</p>
           {error && (
-            <p style={{ color: SP.red, fontSize: 13, marginBottom: 12 }}>
-              {error}
-            </p>
+            <p style={{ color: SP.red, fontSize: 13, marginBottom: 12 }}>{error}</p>
           )}
-          <PinPad
-            value={value}
-            onDigit={onDigit}
-            onDelete={onDelete}
-            disabled={loading}
-          />
+          <PinPad value={value} onDigit={onDigit} onDelete={onDelete} disabled={loading} />
         </>
       )}
     </div>
