@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { APP_BG, SP } from "@/lib/ui";
+import { BETA, isDemoHidden } from "@/lib/beta";
 import { DemoProvider } from "./_components/DemoProvider";
+import ComingSoon from "./_components/ComingSoon";
 
-// Onderste navigatiebalk — 5 hoofdbestemmingen, exact zoals de mockup.
+// Volledige mockup-navigatie.
 const NAV = [
   { href: "/home", ic: "🏠", l: "Home" },
   { href: "/qr", ic: "📱", l: "QR" },
@@ -15,6 +17,17 @@ const NAV = [
   { href: "/crypto", ic: "🪙", l: "Crypto" },
   { href: "/whatsapp", ic: "💬", l: "WhatsApp" },
 ];
+
+// Beta-navigatie — alleen geldechte bestemmingen.
+const BETA_NAV = [
+  { href: "/home", ic: "🏠", l: "Home" },
+  { href: "/versturen", ic: "↑", l: "Sturen" },
+  { href: "/qr", ic: "📱", l: "QR" },
+  { href: "/opwaarderen", ic: "💳", l: "Opwaarderen" },
+  { href: "/opnemen", ic: "🏧", l: "Opnemen" },
+];
+
+const navItems = BETA ? BETA_NAV : NAV;
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -98,31 +111,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             👤
           </Link>
-          <Link
-            href="/whatsapp"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              background: SP.green,
-              border: "none",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 16,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textDecoration: "none",
-            }}
-          >
-            💬
-          </Link>
+          {!BETA && (
+            <Link
+              href="/whatsapp"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: SP.green,
+                border: "none",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textDecoration: "none",
+              }}
+            >
+              💬
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* PAGINA-INHOUD */}
+      {/* PAGINA-INHOUD (demo-routes verborgen in beta, ook bij directe URL) */}
       <DemoProvider>
-        <div style={{ padding: "10px 20px 110px" }}>{children}</div>
+        <div style={{ padding: "10px 20px 110px" }}>
+          {isDemoHidden(pathname) ? <ComingSoon /> : children}
+        </div>
       </DemoProvider>
 
       {/* ONDERSTE NAVIGATIE */}
@@ -143,7 +160,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           zIndex: 100,
         }}
       >
-        {NAV.map((n) => {
+        {navItems.map((n) => {
           const active = pathname === n.href;
           return (
             <Link

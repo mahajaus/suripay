@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { f$, fD, SP } from "@/lib/ui";
 import { RATES, GOLD_USD_PER_GRAM, TXI } from "@/lib/demo";
+import { BETA } from "@/lib/beta";
 import { useDemo } from "../_components/DemoProvider";
+
+// Geldechte tegels die in beta zichtbaar blijven.
+const BETA_TILES = ["/opwaarderen", "/versturen", "/qr", "/opnemen"];
 
 // 4×4 actie-rooster — elke tegel naar een echt scherm.
 const ACTIONS: { ic: string; l: string; c: string; href: string }[] = [
@@ -60,13 +64,18 @@ export default function HomePage() {
           }}
         >
           <span>≈ USD {(balance * RATES.USD).toFixed(2)}</span>
-          <span>🐷 {f$(savings)}</span>
-          <span>🥇 {goldGrams.toFixed(2)}g</span>
-          <span>🎁 {f$(cashback)}</span>
+          {!BETA && (
+            <>
+              <span>🐷 {f$(savings)}</span>
+              <span>🥇 {goldGrams.toFixed(2)}g</span>
+              <span>🎁 {f$(cashback)}</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* GOUD-KAART */}
+      {/* GOUD-KAART (verborgen in beta) */}
+      {!BETA && (
       <div
         onClick={() => router.push("/goud")}
         style={{
@@ -98,6 +107,7 @@ export default function HomePage() {
           <div style={{ fontSize: 9, opacity: 0.4 }}>5% rente/jaar</div>
         </div>
       </div>
+      )}
 
       {/* ACTIE-ROOSTER */}
       <div
@@ -108,7 +118,7 @@ export default function HomePage() {
           marginTop: 14,
         }}
       >
-        {ACTIONS.map((a) => (
+        {(BETA ? ACTIONS.filter((a) => BETA_TILES.includes(a.href)) : ACTIONS).map((a) => (
           <button
             key={a.l}
             onClick={() => router.push(a.href)}
