@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { APP_BG, SP } from "@/lib/ui";
+import { DemoProvider } from "./_components/DemoProvider";
 
 // Onderste navigatiebalk — 5 hoofdbestemmingen, exact zoals de mockup.
 const NAV = [
@@ -120,7 +121,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* PAGINA-INHOUD */}
-      <div style={{ padding: "10px 20px 110px" }}>{children}</div>
+      <DemoProvider>
+        <div style={{ padding: "10px 20px 110px" }}>{children}</div>
+      </DemoProvider>
 
       {/* ONDERSTE NAVIGATIE */}
       <div
