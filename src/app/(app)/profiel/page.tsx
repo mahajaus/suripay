@@ -41,7 +41,7 @@ export default function ProfielPage() {
     { ic: "🪪", t: "KYC-niveau", s: tier || "—", href: "/kyc" },
     { ic: "🔐", t: "PIN wijzigen", s: "6-cijferige PIN", href: "/pin" },
     ...(admin
-      ? [{ ic: "🛠️", t: "KYC-beheer", s: "Inzendingen beoordelen", href: "/admin/kyc" }]
+      ? [{ ic: "🛠️", t: "Beheer", s: "KYC · opwaarderen · opnames", href: "/admin" }]
       : []),
   ];
 

@@ -1,58 +1,57 @@
-# SuriPay beta — overnight handoff (Phase 1: security hardening)
+# SuriPay beta — handoff
 
-Work done autonomously while you were asleep. All changes are on `master`,
-verified with `next build` + `eslint` (both green). Nothing was deployed and
-`main` (your Vite app) was not touched.
+Autonomous progress on the closed-beta plan. All changes on `master`,
+verified with `next build` + `eslint` (green). Nothing deployed; `main`
+(your Vite app) untouched.
 
-## ✅ What I built (code is in the repo, ready)
+## ⚠️ ACTION REQUIRED FROM YOU (Supabase SQL editor)
 
-1. **`db/005_security_hardening.sql`** — a new migration:
-   - Revokes direct `EXECUTE` on `transfer_money` from `anon`/`authenticated`;
-     grants it only to `service_role`. → the client can no longer bypass the
-     server-side PIN check by calling the RPC directly.
-   - Hardens `transfer_money`: `SET search_path`, self-transfer guard,
-     amount-check before balance-check, deterministic lock order (deadlock
-     prevention). Tier checks from `db/003` preserved.
-   - Adds `failed_pin_attempts` + `pin_locked_until` columns to `wallets`.
+Run these migrations in order if not yet applied:
+1. `db/005_security_hardening.sql` — **(you confirmed this is applied ✅)**
+2. `db/006_topup_withdraw.sql` — **NOT yet applied.** Adds top-up/withdrawal
+   tables + balance RPCs, and **drops the `wallets_update_own` RLS policy**
+   (closes a hole where a user could edit their own balance from the browser).
 
-2. **Server-side PIN** — new `POST /api/pin/set` (service-role) hashes the PIN
-   on the server and verifies the current PIN there. `/pin` now calls it;
-   **client-side bcrypt is gone** from the PIN flow.
+The app keeps working before you apply `db/006`, but the new top-up/cash-out
+flows will error until the tables/functions exist.
 
-3. **Hardened `POST /api/transfers/send`**:
-   - Per-user rate limit (8/min).
-   - Self-transfer guard.
-   - **PIN brute-force lockout** — 5 wrong PINs → 15-min lock (best-effort;
-     activates once `db/005` is applied; safe no-op before that).
-   - Stricter input validation.
+---
 
-4. **`src/lib/rateLimit.ts`** — simple in-memory limiter (see caveat below).
+## Phase 1 — Security hardening ✅ (live, db/005 applied)
+- `transfer_money` is service-role only (PIN check can't be bypassed).
+- PIN hashing/verification fully server-side (`/api/pin/set`).
+- PIN brute-force lockout (5 wrong → 15 min), rate limiting, self-transfer guard.
 
-## ⚠️ ACTION REQUIRED FROM YOU (can't do these without your accounts)
+## Phase 2 — Real admin-mediated top-up & cash-out ✅ (code done; needs db/006)
+Closed-beta model — no external payment integration:
+- **Top-up:** user submits a request (`/opwaarderen` → `/api/topup/request`,
+  status `pending`). Admin approves → `admin_credit_wallet` credits the real
+  balance. Bank instructions shown to the user.
+- **Cash-out:** user submits a request (`/opnemen` → `/api/withdrawals/request`).
+  Amount is **reserved (debited) immediately** so it can't be double-spent.
+  Admin marks paid, or rejects → automatic refund.
+- **Admin:** `/admin` hub → `/admin/topups` + `/admin/withdrawals` (and the
+  existing `/admin/kyc`). All gated by the email allowlist (`src/lib/admin.ts`,
+  defaults to your account). Balance mutations only via service-role RPCs
+  (`admin_credit_wallet` / `admin_debit_wallet`).
+- **Security fix:** dropped client write access to `wallets` (db/006).
 
-1. **Apply `db/005_security_hardening.sql`** in the Supabase SQL editor.
-   Until you do: the PIN lockout is a no-op and `transfer_money` is still
-   client-callable. Everything keeps working either way (changes are
-   backward-compatible), but the security benefit only lands after you run it.
-2. After applying, **smoke-test on a real device**: set a PIN (now via the
-   server route), send money, and try a wrong PIN 5× to confirm the lock.
+Verified: endpoint auth gates return 403 (admin) / 401 (user) without a token;
+`/admin` shows "Geen toegang" when logged out.
 
-## 🟡 Deliberately NOT done (needs your review / can't verify unattended)
+## 🧪 Smoke test when you're back (needs a real login)
+1. Apply `db/006`.
+2. As a user: `/opwaarderen` → submit a request. As admin: `/admin/topups` →
+   approve → your balance goes up (reload home to see it).
+3. As a user: `/opnemen` → request (balance drops immediately). As admin:
+   `/admin/withdrawals` → mark paid, or reject (balance comes back).
+4. KYC + send/PIN-lockout from Phase 1.
 
-- **Cookie/SSR auth + Next middleware guard.** The app uses `supabase-js`
-  with localStorage tokens; a real server-side middleware guard needs a
-  migration to `@supabase/ssr` (cookie sessions). That's invasive and I
-  can't runtime-test it without a login, so I left it for a supervised
-  session. Current guard stays client-side (fine for beta, not ideal).
-- **Real rate limiting.** `rateLimit.ts` is in-memory = per-instance; weak on
-  serverless. Swap for Upstash/Redis or a Postgres table before production.
-- Prod Supabase project, Vercel deploy, SMTP — all need your accounts.
+## 🟡 Still pending (per the plan)
+- **Phase 1 leftover:** server-side middleware auth (needs `@supabase/ssr`
+  cookie migration; invasive — left for a supervised session).
+- **Phase 3:** hide the still-demo flows (gold, crypto, savings, etc.) for beta.
+- **Phase 5/6:** prod Supabase, Vercel deploy, SMTP, testing — need your accounts.
+- Replace in-memory `rateLimit.ts` with a shared store before production.
 
-## Where this leaves the beta plan
-
-Phase 1 (security) is ~70% done in code. Remaining Phase 1: SSR/middleware
-auth (supervised). Next up per the plan: **Phase 2 — real admin-mediated
-top-up / cash-out**, then deploy + test.
-
-— Left for you to review in the morning. Nothing is irreversible; revert any
-commit on `master` if you disagree.
+— Review the commits on `master`; revert anything you disagree with.
