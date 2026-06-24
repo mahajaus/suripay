@@ -7,13 +7,15 @@ verified with `next build` + `eslint` (green). Nothing deployed; `main`
 ## ⚠️ ACTION REQUIRED FROM YOU (Supabase SQL editor)
 
 Run these migrations in order if not yet applied:
-1. `db/005_security_hardening.sql` — **(you confirmed this is applied ✅)**
-2. `db/006_topup_withdraw.sql` — **NOT yet applied.** Adds top-up/withdrawal
-   tables + balance RPCs, and **drops the `wallets_update_own` RLS policy**
-   (closes a hole where a user could edit their own balance from the browser).
+1. `db/005_security_hardening.sql` — **applied ✅**
+2. `db/006_topup_withdraw.sql` — **applied ✅**
+3. `db/007_currencies.sql` — **NOT yet applied.** Adds multi-currency wallet:
+   `currencies` (SRD/EUR/USD enabled; BRL/CNY/GYD seeded but disabled) +
+   `wallet_balances` (foreign balances) + `exchange_currency` RPC.
 
-The app keeps working before you apply `db/006`, but the new top-up/cash-out
-flows will error until the tables/functions exist.
+The app keeps working before you apply `db/007` (the currency card just stays
+empty and `/wisselen` shows "laden…"), but exchange won't function until the
+tables/functions exist.
 
 ---
 

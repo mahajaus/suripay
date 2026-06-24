@@ -7,7 +7,7 @@ import { BETA } from "@/lib/beta";
 import { useDemo } from "../_components/DemoProvider";
 
 // Geldechte tegels die in beta zichtbaar blijven.
-const BETA_TILES = ["/opwaarderen", "/versturen", "/qr", "/opnemen"];
+const BETA_TILES = ["/opwaarderen", "/versturen", "/qr", "/opnemen", "/wisselen"];
 
 // 4×4 actie-rooster — elke tegel naar een echt scherm.
 const ACTIONS: { ic: string; l: string; c: string; href: string }[] = [
@@ -27,11 +27,13 @@ const ACTIONS: { ic: string; l: string; c: string; href: string }[] = [
   { ic: "🏛️", l: "Overheid", c: "#1B3A5C", href: "/overheid" },
   { ic: "🌍", l: "Diaspora", c: "#3b82f6", href: "/diaspora" },
   { ic: "🌾", l: "Landbouw", c: "#10B981", href: "/landbouw" },
+  { ic: "💱", l: "Wisselen", c: "#E6B800", href: "/wisselen" },
 ];
 
 export default function HomePage() {
   const router = useRouter();
-  const { balance, savings, cashback, goldGrams, txs } = useDemo();
+  const { balance, savings, cashback, goldGrams, txs, currencies, fx } = useDemo();
+  const foreign = currencies.filter((c) => c.code !== "SRD");
 
   const goldValueSRD = goldGrams * (GOLD_USD_PER_GRAM / RATES.USD);
 
@@ -73,6 +75,42 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* MIJN VALUTA */}
+      {foreign.length > 0 && (
+        <div
+          onClick={() => router.push("/wisselen")}
+          style={{
+            cursor: "pointer",
+            background: "rgba(255,255,255,.05)",
+            borderRadius: 14,
+            padding: "14px 16px",
+            marginTop: 10,
+            border: "1px solid rgba(255,255,255,.08)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>Mijn valuta</span>
+            <span style={{ fontSize: 11, color: SP.gold, fontWeight: 600 }}>Wisselen →</span>
+          </div>
+          {foreign.map((c) => {
+            const bal = fx[c.code] ?? 0;
+            return (
+              <div key={c.code} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                  {c.symbol} {c.code}
+                </span>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>
+                    {c.symbol} {bal.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div style={{ fontSize: 9, opacity: 0.4 }}>≈ {f$(bal * c.srd_per_unit)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* GOUD-KAART (verborgen in beta) */}
       {!BETA && (

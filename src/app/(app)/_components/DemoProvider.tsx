@@ -12,6 +12,13 @@ import { SP } from "@/lib/ui";
 
 export type Tx = { id: string | number; ty: string; d: string; a: number; dt: string };
 export type CryptoBal = { usdt: number; usdc: number; dai: number };
+export type Currency = {
+  code: string;
+  name: string;
+  symbol: string;
+  srd_per_unit: number;
+  sort_order: number;
+};
 
 type TxRow = {
   id: string;
@@ -33,6 +40,9 @@ type Ctx = {
   cryptoB: CryptoBal;
   insurances: string[];
   txs: Tx[];
+  currencies: Currency[];
+  fx: Record<string, number>;
+  setFx: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   setBalance: React.Dispatch<React.SetStateAction<number>>;
   setSavings: React.Dispatch<React.SetStateAction<number>>;
   setCashback: React.Dispatch<React.SetStateAction<number>>;
@@ -65,6 +75,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [cryptoB, setCrypto] = useState<CryptoBal>({ usdt: 25, usdc: 10.5, dai: 0 });
   const [insurances, setInsurances] = useState<string[]>(["health"]);
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [fx, setFx] = useState<Record<string, number>>({});
   const [note, setNote] = useState<{ m: string; t: "ok" | "err" } | null>(null);
 
   useEffect(() => {
@@ -99,6 +111,25 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             }))
           );
         }
+
+        // Valuta-catalogus + vreemde-valuta saldi (tabellen bestaan na db/007).
+        const { data: cur } = await supabase
+          .from("currencies")
+          .select("code, name, symbol, srd_per_unit, sort_order")
+          .eq("enabled", true)
+          .order("sort_order");
+        if (cur) setCurrencies(cur as Currency[]);
+
+        const { data: wb } = await supabase
+          .from("wallet_balances")
+          .select("currency, balance")
+          .eq("wallet_id", wallet.id);
+        if (wb) {
+          const m: Record<string, number> = {};
+          for (const r of wb as { currency: string; balance: number }[])
+            m[r.currency] = Number(r.balance);
+          setFx(m);
+        }
       }
       setReady(true);
     };
@@ -132,6 +163,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         cryptoB,
         insurances,
         txs,
+        currencies,
+        fx,
+        setFx,
         setBalance,
         setSavings,
         setCashback,
