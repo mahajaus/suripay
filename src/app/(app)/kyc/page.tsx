@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SP, f$ } from "@/lib/ui";
 
@@ -21,9 +22,11 @@ const KYC_LABEL: Record<string, string> = {
 };
 
 export default function KycPage() {
+  const router = useRouter();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [current, setCurrent] = useState<string>("");
   const [received, setReceived] = useState(0);
+  const [pending, setPending] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,6 +55,17 @@ export default function KycPage() {
         setReceived(Number(wallet.received_this_year ?? 0));
       }
       if (tierRows) setTiers(tierRows as Tier[]);
+
+      // Lopende verificatie? (tabel kan ontbreken vóór migratie 004 — negeer fout)
+      const { data: sub } = await supabase
+        .from("kyc_submissions")
+        .select("status, requested_tier")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (sub) setPending(sub.requested_tier);
     };
     load();
   }, []);
@@ -97,6 +111,30 @@ export default function KycPage() {
       <p style={{ fontSize: 12, opacity: 0.5, marginBottom: 16 }}>
         Je limieten hangen af van je verificatieniveau
       </p>
+
+      {/* LOPENDE VERIFICATIE */}
+      {pending && (
+        <div
+          style={{
+            background: "rgba(230,184,0,.12)",
+            border: "1px solid rgba(230,184,0,.25)",
+            borderRadius: 12,
+            padding: "12px 14px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 20 }}>🕓</span>
+          <div style={{ fontSize: 12 }}>
+            <b style={{ color: SP.gold }}>Verificatie in behandeling</b>
+            <div style={{ opacity: 0.6 }}>
+              Aanvraag voor niveau {pending} wordt beoordeeld.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HUIDIGE TIER */}
       {cur && (
@@ -214,7 +252,11 @@ export default function KycPage() {
             </div>
             {!active && t.sort_order > (cur?.sort_order ?? 0) && (
               <button
-                onClick={() => note("KYC-upgrade — binnenkort beschikbaar")}
+                onClick={() =>
+                  pending
+                    ? note("Er loopt al een verificatie")
+                    : router.push(`/kyc/verifieren?tier=${t.name}`)
+                }
                 style={{
                   marginTop: 10,
                   width: "100%",
@@ -228,7 +270,7 @@ export default function KycPage() {
                   cursor: "pointer",
                 }}
               >
-                Upgrade naar {t.display_name}
+                🪪 Verifieer voor {t.display_name}
               </button>
             )}
           </div>
