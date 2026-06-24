@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SP } from "@/lib/ui";
+import { isAdminEmail } from "@/lib/admin";
 
 export default function ProfielPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [tier, setTier] = useState("");
+  const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -19,6 +21,7 @@ export default function ProfielPage() {
       if (!user) return;
       setFullName(user.user_metadata?.full_name || "");
       setEmail(user.email || "");
+      setAdmin(isAdminEmail(user.email));
       const { data: wallet } = await supabase
         .from("wallets")
         .select("tier")
@@ -37,6 +40,9 @@ export default function ProfielPage() {
   const rows = [
     { ic: "🪪", t: "KYC-niveau", s: tier || "—", href: "/kyc" },
     { ic: "🔐", t: "PIN wijzigen", s: "6-cijferige PIN", href: "/pin" },
+    ...(admin
+      ? [{ ic: "🛠️", t: "KYC-beheer", s: "Inzendingen beoordelen", href: "/admin/kyc" }]
+      : []),
   ];
 
   return (
