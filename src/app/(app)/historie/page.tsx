@@ -42,7 +42,12 @@ export default function HistoriePage() {
                 {TXI[tx.ty] || "•"}
               </div>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>{tx.d}</div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>
+                  {tx.other ? `${tx.a > 0 ? "Van " : "Naar "}${tx.other}` : tx.d}
+                </div>
+                {tx.other && tx.d && (
+                  <div style={{ fontSize: 10, opacity: 0.5 }}>{tx.d}</div>
+                )}
                 <div style={{ fontSize: 10, opacity: 0.3 }}>{fD(tx.dt)}</div>
               </div>
             </div>

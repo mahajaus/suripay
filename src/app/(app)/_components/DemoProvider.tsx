@@ -10,7 +10,14 @@ import {
 import { supabase } from "@/lib/supabase";
 import { SP } from "@/lib/ui";
 
-export type Tx = { id: string | number; ty: string; d: string; a: number; dt: string };
+export type Tx = {
+  id: string | number;
+  ty: string;
+  other?: string; // tegenpartij (naam/e-mail)
+  d?: string; // omschrijving
+  a: number;
+  dt: string;
+};
 export type CryptoBal = { usdt: number; usdc: number; dai: number };
 export type Currency = {
   code: string;
@@ -105,7 +112,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             (t as TxRow[]).map((x) => ({
               id: x.id,
               ty: x.direction === "out" ? "send" : "receive",
-              d: x.description || x.other_party,
+              other: x.other_party,
+              d: x.description || undefined,
               a: x.direction === "out" ? -Number(x.amount) : Number(x.amount),
               dt: x.created_at,
             }))

@@ -79,7 +79,7 @@ export default function WhatsappPage() {
         saldo: `💰 ${f$(balance)}\n🐷 Sparen: ${f$(savings)}\n🥇 Goud: ${goldGrams.toFixed(2)}g`,
         sparen: `🐷 ${f$(savings)} · 3,5%/jaar`,
         suribet: "🎰 Suribet-codes ook geaccepteerd!\nStuur je SB-code.",
-        historie: txs.slice(0, 5).map((t, n) => `${n + 1}. ${t.a > 0 ? "+" : ""}${f$(t.a)} — ${t.d}`).join("\n") || "Nog geen transacties",
+        historie: txs.slice(0, 5).map((t, n) => `${n + 1}. ${t.a > 0 ? "+" : ""}${f$(t.a)} — ${t.d || t.other || ""}`).join("\n") || "Nog geen transacties",
       };
       bot(replies[c] || "🤖 Typ HELP voor opties");
     }, 800);
