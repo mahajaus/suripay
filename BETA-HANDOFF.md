@@ -4,18 +4,18 @@ Autonomous progress on the closed-beta plan. All changes on `master`,
 verified with `next build` + `eslint` (green). Nothing deployed; `main`
 (your Vite app) untouched.
 
-## ⚠️ ACTION REQUIRED FROM YOU (Supabase SQL editor)
+## ✅ Migrations — all applied, smoke test passed (2026-06-25)
 
-Run these migrations in order if not yet applied:
-1. `db/005_security_hardening.sql` — **applied ✅**
-2. `db/006_topup_withdraw.sql` — **applied ✅**
-3. `db/007_currencies.sql` — **NOT yet applied.** Adds multi-currency wallet:
-   `currencies` (SRD/EUR/USD enabled; BRL/CNY/GYD seeded but disabled) +
-   `wallet_balances` (foreign balances) + `exchange_currency` RPC.
+`db/005` … `db/010` are all applied in Supabase and verified end-to-end via a
+live smoke test (login, PIN, top-up→approve, exchange, send, cash-out→pay/refund).
 
-The app keeps working before you apply `db/007` (the currency card just stays
-empty and `/wisselen` shows "laden…"), but exchange won't function until the
-tables/functions exist.
+The smoke test flushed out and fixed four real live-DB bugs:
+- `db/008` — wallet auto-create trigger was missing → new signups had no wallet.
+- `db/009` — `find_wallet_by_email` returned the wallets rowtype and broke when
+  db/005 added columns → recipient lookup failed.
+- `db/010` — `transactions.type` check constraint rejected topup/cashout/exchange.
+- Auth/email: Supabase email confirmation doesn't deliver → confirm via admin
+  API or disable in the dashboard for dev.
 
 ---
 
