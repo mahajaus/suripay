@@ -13,8 +13,10 @@ const LOCK_MINUTES = 15;
 
 export async function POST(req: NextRequest) {
   try {
-    const { pin, amount, receiver_email, description, from_currency } = await req.json();
+    const { pin, amount, receiver_email, description, from_currency, to_currency } =
+      await req.json();
     const fromCur = typeof from_currency === "string" && from_currency ? from_currency : "SRD";
+    const toCur = typeof to_currency === "string" && to_currency ? to_currency : "SRD";
     const token = req.headers.get("authorization")?.split(" ")[1];
 
     // ---- Invoervalidatie ----
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest) {
     let result: { success?: boolean; error?: string; transaction_id?: string } | null = null;
     let transferError: { message?: string } | null = null;
 
-    if (fromCur === "SRD") {
+    if (fromCur === "SRD" && toCur === "SRD") {
       if (senderWallet.balance < amountNum) {
         return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
       }
@@ -132,6 +134,7 @@ export async function POST(req: NextRequest) {
         p_sender_wallet_id: senderWallet.id,
         p_receiver_wallet_id: receiver.wallet_id,
         p_from_currency: fromCur,
+        p_to_currency: toCur,
         p_from_amount: amountNum,
         p_description: description || null,
       }));

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { SP, IS, BT, f$ } from "@/lib/ui";
+import { SP, IS, BT } from "@/lib/ui";
 import PinPad from "@/components/PinPad";
 import { useDemo } from "../_components/DemoProvider";
 
@@ -23,12 +23,31 @@ function VersturenInner() {
   const [hasPin, setHasPin] = useState(true);
   const [receiverName, setReceiverName] = useState("");
   const [fromCur, setFromCur] = useState("SRD");
+  const [toCur, setToCur] = useState("SRD");
 
   const { fx, currencies } = useDemo();
   const rateOf = (c: string) =>
     currencies.find((x) => x.code === c)?.srd_per_unit ?? (c === "SRD" ? 1 : null);
   const symOf = (c: string) => currencies.find((x) => x.code === c)?.symbol ?? c;
   const balanceOf = (c: string) => (c === "SRD" ? balance : fx[c] ?? 0);
+  const toAmount = () => {
+    const fr = rateOf(fromCur);
+    const tr = rateOf(toCur);
+    const a = Number(amount);
+    return a && fr && tr ? (a * fr) / tr : 0;
+  };
+  const pill = (active: boolean): React.CSSProperties => ({
+    padding: "6px 12px",
+    borderRadius: 9,
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+    background: active ? `${SP.gold}25` : "rgba(255,255,255,.05)",
+    border: `1px solid ${active ? SP.gold : "rgba(255,255,255,.1)"}`,
+    color: active ? SP.gold : "rgba(255,255,255,.6)",
+  });
+  const fmtN = (n: number) =>
+    n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   useEffect(() => {
     const load = async () => {
@@ -117,6 +136,7 @@ function VersturenInner() {
         receiver_email: email,
         description: description || null,
         from_currency: fromCur,
+        to_currency: toCur,
       }),
     });
     const data = await res.json();
@@ -172,28 +192,25 @@ function VersturenInner() {
           <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
             {receiverName}
           </p>
-          {/* Betaal vanuit SRD of een vreemde valuta-pocket */}
           {currencies.length > 1 && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-              {currencies.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => setFromCur(c.code)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 9,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    background: fromCur === c.code ? `${SP.gold}25` : "rgba(255,255,255,.05)",
-                    border: `1px solid ${fromCur === c.code ? SP.gold : "rgba(255,255,255,.1)"}`,
-                    color: fromCur === c.code ? SP.gold : "rgba(255,255,255,.6)",
-                  }}
-                >
-                  {c.code}
-                </button>
-              ))}
-            </div>
+            <>
+              <label style={{ fontSize: 11, opacity: 0.6 }}>Je betaalt met</label>
+              <div style={{ display: "flex", gap: 6, margin: "6px 0 10px", flexWrap: "wrap" }}>
+                {currencies.map((c) => (
+                  <button key={c.code} onClick={() => setFromCur(c.code)} style={pill(fromCur === c.code)}>
+                    {c.code}
+                  </button>
+                ))}
+              </div>
+              <label style={{ fontSize: 11, opacity: 0.6 }}>Ontvanger krijgt</label>
+              <div style={{ display: "flex", gap: 6, margin: "6px 0 12px", flexWrap: "wrap" }}>
+                {currencies.map((c) => (
+                  <button key={c.code} onClick={() => setToCur(c.code)} style={pill(toCur === c.code)}>
+                    {c.code}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           <input
             type="number"
@@ -202,16 +219,12 @@ function VersturenInner() {
             placeholder={`Bedrag (${fromCur})`}
             style={{ ...IS, marginBottom: 6 }}
           />
-          <p style={{ fontSize: 11, opacity: 0.4, marginBottom: fromCur === "SRD" ? 12 : 4 }}>
-            Beschikbaar: {symOf(fromCur)}{" "}
-            {balanceOf(fromCur).toLocaleString("nl-NL", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+          <p style={{ fontSize: 11, opacity: 0.4, marginBottom: 6 }}>
+            Beschikbaar: {symOf(fromCur)} {fmtN(balanceOf(fromCur))}
           </p>
-          {fromCur !== "SRD" && !!Number(amount) && rateOf(fromCur) && (
+          {!!Number(amount) && rateOf(fromCur) && rateOf(toCur) && (
             <p style={{ fontSize: 12, color: SP.gold, fontWeight: 700, marginBottom: 12 }}>
-              Ontvanger ontvangt ≈ {f$(Number(amount) * (rateOf(fromCur) as number))}
+              Ontvanger ontvangt ≈ {symOf(toCur)} {fmtN(toAmount())}
             </p>
           )}
           <input
@@ -230,10 +243,8 @@ function VersturenInner() {
       {step === "pin" && (
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 4 }}>
-            Bevestig {symOf(fromCur)} {Number(amount).toFixed(2)} naar {receiverName}
-            {fromCur !== "SRD" && rateOf(fromCur)
-              ? ` (≈ ${f$(Number(amount) * (rateOf(fromCur) as number))})`
-              : ""}
+            Bevestig {symOf(fromCur)} {fmtN(Number(amount))} naar {receiverName}
+            {fromCur !== toCur ? ` (ontvanger krijgt ${symOf(toCur)} ${fmtN(toAmount())})` : ""}
           </p>
           <p style={{ fontWeight: 700, marginBottom: 20 }}>Voer je PIN in</p>
           <PinPad
@@ -259,13 +270,11 @@ function VersturenInner() {
             Verstuurd!
           </div>
           <div style={{ fontSize: 22, fontWeight: 800 }}>
-            {symOf(fromCur)} {Number(amount).toFixed(2)}
+            {symOf(fromCur)} {fmtN(Number(amount))}
           </div>
           <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 18 }}>
             aan {receiverName}
-            {fromCur !== "SRD" && rateOf(fromCur)
-              ? ` · ${f$(Number(amount) * (rateOf(fromCur) as number))} ontvangen`
-              : ""}
+            {fromCur !== toCur ? ` · ${symOf(toCur)} ${fmtN(toAmount())} ontvangen` : ""}
           </div>
           <button
             onClick={() => router.push("/home")}
