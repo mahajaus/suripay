@@ -81,7 +81,13 @@ export default function AdminKycPage() {
         padding: "24px 20px",
       }}
     >
-      {children}
+      <a
+        href="/admin"
+        style={{ color: SP.gold, fontSize: 13, fontWeight: 600, textDecoration: "none" }}
+      >
+        ← Beheer
+      </a>
+      <div style={{ marginTop: 10 }}>{children}</div>
     </main>
   );
 

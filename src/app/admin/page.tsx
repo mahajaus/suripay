@@ -32,7 +32,15 @@ export default function AdminHub() {
         padding: "24px 20px",
       }}
     >
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: SP.gold }}>🛠️ Beheer</h1>
+      <a
+        href="/home"
+        style={{ color: SP.gold, fontSize: 13, fontWeight: 600, textDecoration: "none" }}
+      >
+        ← Home
+      </a>
+      <h1 style={{ fontSize: 22, fontWeight: 800, color: SP.gold, marginTop: 10 }}>
+        🛠️ Beheer
+      </h1>
 
       {state === "loading" && <p style={{ opacity: 0.4, marginTop: 12 }}>Laden…</p>}
       {state === "denied" && (
