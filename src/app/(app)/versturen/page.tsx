@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SP, IS, BT, f$ } from "@/lib/ui";
 import PinPad from "@/components/PinPad";
+import { useDemo } from "../_components/DemoProvider";
 
 function VersturenInner() {
   const router = useRouter();
@@ -21,6 +22,13 @@ function VersturenInner() {
   const [balance, setBalance] = useState(0);
   const [hasPin, setHasPin] = useState(true);
   const [receiverName, setReceiverName] = useState("");
+  const [fromCur, setFromCur] = useState("SRD");
+
+  const { fx, currencies } = useDemo();
+  const rateOf = (c: string) =>
+    currencies.find((x) => x.code === c)?.srd_per_unit ?? (c === "SRD" ? 1 : null);
+  const symOf = (c: string) => currencies.find((x) => x.code === c)?.symbol ?? c;
+  const balanceOf = (c: string) => (c === "SRD" ? balance : fx[c] ?? 0);
 
   useEffect(() => {
     const load = async () => {
@@ -73,7 +81,7 @@ function VersturenInner() {
     setError("");
     const v = Number(amount);
     if (!v || v <= 0) return setError("Voer een geldig bedrag in.");
-    if (v > balance) return setError("Onvoldoende saldo.");
+    if (v > balanceOf(fromCur)) return setError("Onvoldoende saldo.");
     if (!hasPin)
       return setError("Stel eerst een PIN in via je profiel.");
     setStep("pin");
@@ -108,6 +116,7 @@ function VersturenInner() {
         amount: Math.round(Number(amount) * 100) / 100,
         receiver_email: email,
         description: description || null,
+        from_currency: fromCur,
       }),
     });
     const data = await res.json();
@@ -163,16 +172,48 @@ function VersturenInner() {
           <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>
             {receiverName}
           </p>
+          {/* Betaal vanuit SRD of een vreemde valuta-pocket */}
+          {currencies.length > 1 && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+              {currencies.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => setFromCur(c.code)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 9,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: fromCur === c.code ? `${SP.gold}25` : "rgba(255,255,255,.05)",
+                    border: `1px solid ${fromCur === c.code ? SP.gold : "rgba(255,255,255,.1)"}`,
+                    color: fromCur === c.code ? SP.gold : "rgba(255,255,255,.6)",
+                  }}
+                >
+                  {c.code}
+                </button>
+              ))}
+            </div>
+          )}
           <input
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder="Bedrag (SRD)"
+            placeholder={`Bedrag (${fromCur})`}
             style={{ ...IS, marginBottom: 6 }}
           />
-          <p style={{ fontSize: 11, opacity: 0.4, marginBottom: 12 }}>
-            Beschikbaar: {f$(balance)}
+          <p style={{ fontSize: 11, opacity: 0.4, marginBottom: fromCur === "SRD" ? 12 : 4 }}>
+            Beschikbaar: {symOf(fromCur)}{" "}
+            {balanceOf(fromCur).toLocaleString("nl-NL", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </p>
+          {fromCur !== "SRD" && !!Number(amount) && rateOf(fromCur) && (
+            <p style={{ fontSize: 12, color: SP.gold, fontWeight: 700, marginBottom: 12 }}>
+              Ontvanger ontvangt ≈ {f$(Number(amount) * (rateOf(fromCur) as number))}
+            </p>
+          )}
           <input
             type="text"
             value={description}
@@ -189,7 +230,10 @@ function VersturenInner() {
       {step === "pin" && (
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: 13, opacity: 0.6, marginBottom: 4 }}>
-            Bevestig {f$(Number(amount))} naar {receiverName}
+            Bevestig {symOf(fromCur)} {Number(amount).toFixed(2)} naar {receiverName}
+            {fromCur !== "SRD" && rateOf(fromCur)
+              ? ` (≈ ${f$(Number(amount) * (rateOf(fromCur) as number))})`
+              : ""}
           </p>
           <p style={{ fontWeight: 700, marginBottom: 20 }}>Voer je PIN in</p>
           <PinPad
@@ -215,10 +259,13 @@ function VersturenInner() {
             Verstuurd!
           </div>
           <div style={{ fontSize: 22, fontWeight: 800 }}>
-            {f$(Number(amount))}
+            {symOf(fromCur)} {Number(amount).toFixed(2)}
           </div>
           <div style={{ fontSize: 12, opacity: 0.5, marginBottom: 18 }}>
             aan {receiverName}
+            {fromCur !== "SRD" && rateOf(fromCur)
+              ? ` · ${f$(Number(amount) * (rateOf(fromCur) as number))} ontvangen`
+              : ""}
           </div>
           <button
             onClick={() => router.push("/home")}

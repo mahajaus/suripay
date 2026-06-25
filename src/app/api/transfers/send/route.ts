@@ -13,7 +13,8 @@ const LOCK_MINUTES = 15;
 
 export async function POST(req: NextRequest) {
   try {
-    const { pin, amount, receiver_email, description } = await req.json();
+    const { pin, amount, receiver_email, description, from_currency } = await req.json();
+    const fromCur = typeof from_currency === "string" && from_currency ? from_currency : "SRD";
     const token = req.headers.get("authorization")?.split(" ")[1];
 
     // ---- Invoervalidatie ----
@@ -110,17 +111,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Je kunt geen geld naar jezelf sturen" }, { status: 400 });
     }
 
-    if (senderWallet.balance < amountNum) {
-      return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
-    }
+    // ---- Overboeking via RPC (alleen service-role mag dit) ----
+    // SRD → bewezen transfer_money; vreemde valuta → transfer_money_fx
+    // (ontvanger krijgt altijd SRD-tegenwaarde).
+    let result: { success?: boolean; error?: string; transaction_id?: string } | null = null;
+    let transferError: { message?: string } | null = null;
 
-    // ---- Overboeking via RPC (alleen service-role mag dit na db/005) ----
-    const { data: result, error: transferError } = await supabase.rpc("transfer_money", {
-      p_sender_wallet_id: senderWallet.id,
-      p_receiver_wallet_id: receiver.wallet_id,
-      p_amount: amountNum,
-      p_description: description || `Transfer to ${receiver.full_name}`,
-    });
+    if (fromCur === "SRD") {
+      if (senderWallet.balance < amountNum) {
+        return NextResponse.json({ error: "Insufficient balance" }, { status: 400 });
+      }
+      ({ data: result, error: transferError } = await supabase.rpc("transfer_money", {
+        p_sender_wallet_id: senderWallet.id,
+        p_receiver_wallet_id: receiver.wallet_id,
+        p_amount: amountNum,
+        p_description: description || `Transfer to ${receiver.full_name}`,
+      }));
+    } else {
+      ({ data: result, error: transferError } = await supabase.rpc("transfer_money_fx", {
+        p_sender_wallet_id: senderWallet.id,
+        p_receiver_wallet_id: receiver.wallet_id,
+        p_from_currency: fromCur,
+        p_from_amount: amountNum,
+        p_description: description || null,
+      }));
+    }
 
     if (transferError || !result?.success) {
       return NextResponse.json(
