@@ -41,7 +41,9 @@ export async function POST(req: NextRequest) {
       update.sell_srd = r;
     }
   }
-  if (typeof enabled === "boolean") update.enabled = enabled;
+  // SRD (basisvaluta) mag nooit uitgeschakeld worden — anders breekt elke
+  // wissel/overboeking (de RPC's vereisen enabled).
+  if (typeof enabled === "boolean" && code !== "SRD") update.enabled = enabled;
 
   const { error } = await admin.from("currencies").update(update).eq("code", code);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

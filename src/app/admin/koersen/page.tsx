@@ -123,6 +123,7 @@ export default function KoersenPage() {
               <input
                 type="checkbox"
                 checked={c.enabled}
+                disabled={c.code === "SRD"}
                 onChange={(e) => setField(c.code, { enabled: e.target.checked })}
               />
               actief
