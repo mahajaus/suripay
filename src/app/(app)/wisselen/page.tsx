@@ -51,14 +51,16 @@ export default function WisselenPage() {
   const [ok, setOk] = useState(false);
   const [done, setDone] = useState<{ to: number; code: string } | null>(null);
 
-  const rateOf = (c: string) =>
-    currencies.find((x) => x.code === c)?.srd_per_unit ?? null;
+  const buyOf = (c: string) =>
+    currencies.find((x) => x.code === c)?.buy_srd ?? (c === "SRD" ? 1 : null);
+  const sellOf = (c: string) =>
+    currencies.find((x) => x.code === c)?.sell_srd ?? (c === "SRD" ? 1 : null);
   const symOf = (c: string) => currencies.find((x) => x.code === c)?.symbol ?? c;
   const balanceOf = (c: string) => (c === "SRD" ? balance : fx[c] ?? 0);
 
   const a = parseFloat(amount);
-  const fr = rateOf(from);
-  const tr = rateOf(to);
+  const fr = buyOf(from); // bron: SuriPay koopt
+  const tr = sellOf(to); // doel: SuriPay verkoopt
   const converted = a && fr && tr ? (a * fr) / tr : 0;
 
   const submit = async () => {

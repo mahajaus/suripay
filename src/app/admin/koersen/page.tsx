@@ -8,7 +8,8 @@ type Cur = {
   code: string;
   name: string;
   symbol: string;
-  srd_per_unit: number;
+  buy_srd: number;
+  sell_srd: number;
   enabled: boolean;
 };
 
@@ -55,7 +56,8 @@ export default function KoersenPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
       body: JSON.stringify({
         code: c.code,
-        srd_per_unit: c.srd_per_unit,
+        buy_srd: c.buy_srd,
+        sell_srd: c.sell_srd,
         enabled: c.enabled,
       }),
     });
@@ -126,43 +128,50 @@ export default function KoersenPage() {
               actief
             </label>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontSize: 11, opacity: 0.5, whiteSpace: "nowrap" }}>1 {c.code} =</span>
-            <input
-              type="number"
-              step="0.0001"
-              value={c.srd_per_unit}
-              disabled={c.code === "SRD"}
-              onChange={(e) => setField(c.code, { srd_per_unit: Number(e.target.value) })}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                background: "rgba(255,255,255,.08)",
-                border: "1px solid rgba(255,255,255,.12)",
-                borderRadius: 10,
-                color: "#fff",
-                fontSize: 14,
-                outline: "none",
-                opacity: c.code === "SRD" ? 0.5 : 1,
-              }}
-            />
-            <span style={{ fontSize: 11, opacity: 0.5 }}>SRD</span>
-            <button
-              onClick={() => save(c)}
-              disabled={busy === c.code}
-              style={{
-                padding: "10px 16px",
-                borderRadius: 10,
-                border: "none",
-                background: SP.gold,
-                color: SP.ink,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {busy === c.code ? "…" : "Opslaan"}
-            </button>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            {(["buy_srd", "sell_srd"] as const).map((field) => (
+              <div key={field} style={{ flex: 1 }}>
+                <label style={{ fontSize: 10, opacity: 0.5 }}>
+                  {field === "buy_srd" ? "We Buy (SRD)" : "We Sell (SRD)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={c[field]}
+                  disabled={c.code === "SRD"}
+                  onChange={(e) => setField(c.code, { [field]: Number(e.target.value) })}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    background: "rgba(255,255,255,.08)",
+                    border: "1px solid rgba(255,255,255,.12)",
+                    borderRadius: 10,
+                    color: "#fff",
+                    fontSize: 14,
+                    outline: "none",
+                    boxSizing: "border-box",
+                    opacity: c.code === "SRD" ? 0.5 : 1,
+                  }}
+                />
+              </div>
+            ))}
           </div>
+          <button
+            onClick={() => save(c)}
+            disabled={busy === c.code || c.code === "SRD"}
+            style={{
+              width: "100%",
+              padding: "10px",
+              borderRadius: 10,
+              border: "none",
+              background: c.code === "SRD" ? "rgba(255,255,255,.1)" : SP.gold,
+              color: SP.ink,
+              fontWeight: 700,
+              cursor: c.code === "SRD" ? "default" : "pointer",
+            }}
+          >
+            {c.code === "SRD" ? "Basisvaluta" : busy === c.code ? "…" : "Opslaan"}
+          </button>
         </div>
       ))}
     </div>

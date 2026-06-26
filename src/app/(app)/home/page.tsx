@@ -104,7 +104,7 @@ export default function HomePage() {
                   <div style={{ fontSize: 13, fontWeight: 700 }}>
                     {c.symbol} {bal.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div style={{ fontSize: 9, opacity: 0.4 }}>≈ {f$(bal * c.srd_per_unit)}</div>
+                  <div style={{ fontSize: 9, opacity: 0.4 }}>≈ {f$(bal * c.buy_srd)}</div>
                 </div>
               </div>
             );

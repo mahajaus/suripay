@@ -23,7 +23,8 @@ export type Currency = {
   code: string;
   name: string;
   symbol: string;
-  srd_per_unit: number;
+  buy_srd: number; // SRD per eenheid als SuriPay koopt (vanuit deze valuta)
+  sell_srd: number; // SRD per eenheid als SuriPay verkoopt (naar deze valuta)
   sort_order: number;
 };
 
@@ -123,7 +124,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         // Valuta-catalogus + vreemde-valuta saldi (tabellen bestaan na db/007).
         const { data: cur } = await supabase
           .from("currencies")
-          .select("code, name, symbol, srd_per_unit, sort_order")
+          .select("code, name, symbol, buy_srd, sell_srd, sort_order")
           .eq("enabled", true)
           .order("sort_order");
         if (cur) setCurrencies(cur as Currency[]);

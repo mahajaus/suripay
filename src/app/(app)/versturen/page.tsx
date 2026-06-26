@@ -26,13 +26,15 @@ function VersturenInner() {
   const [toCur, setToCur] = useState("SRD");
 
   const { fx, currencies } = useDemo();
-  const rateOf = (c: string) =>
-    currencies.find((x) => x.code === c)?.srd_per_unit ?? (c === "SRD" ? 1 : null);
+  const buyOf = (c: string) =>
+    currencies.find((x) => x.code === c)?.buy_srd ?? (c === "SRD" ? 1 : null);
+  const sellOf = (c: string) =>
+    currencies.find((x) => x.code === c)?.sell_srd ?? (c === "SRD" ? 1 : null);
   const symOf = (c: string) => currencies.find((x) => x.code === c)?.symbol ?? c;
   const balanceOf = (c: string) => (c === "SRD" ? balance : fx[c] ?? 0);
   const toAmount = () => {
-    const fr = rateOf(fromCur);
-    const tr = rateOf(toCur);
+    const fr = buyOf(fromCur);
+    const tr = sellOf(toCur);
     const a = Number(amount);
     return a && fr && tr ? (a * fr) / tr : 0;
   };
@@ -222,7 +224,7 @@ function VersturenInner() {
           <p style={{ fontSize: 11, opacity: 0.4, marginBottom: 6 }}>
             Beschikbaar: {symOf(fromCur)} {fmtN(balanceOf(fromCur))}
           </p>
-          {!!Number(amount) && rateOf(fromCur) && rateOf(toCur) && (
+          {!!Number(amount) && buyOf(fromCur) && sellOf(toCur) && (
             <p style={{ fontSize: 12, color: SP.gold, fontWeight: 700, marginBottom: 12 }}>
               Ontvanger ontvangt ≈ {symOf(toCur)} {fmtN(toAmount())}
             </p>
