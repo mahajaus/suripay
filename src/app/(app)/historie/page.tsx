@@ -2,11 +2,18 @@
 
 import { useDemo } from "../_components/DemoProvider";
 import { PageTitle } from "../_components/kit";
-import { f$, fD, SP } from "@/lib/ui";
+import { fD, SP } from "@/lib/ui";
 import { TXI } from "@/lib/demo";
 
 export default function HistoriePage() {
-  const { txs } = useDemo();
+  const { txs, currencies } = useDemo();
+  const curSym = (code?: string) =>
+    currencies.find((c) => c.code === code)?.symbol ?? code ?? "SRD";
+  const fmtAmt = (n: number) =>
+    Math.abs(n).toLocaleString("nl-NL", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   return (
     <div>
       <PageTitle>📋 Alle transacties</PageTitle>
@@ -53,7 +60,7 @@ export default function HistoriePage() {
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, color: tx.a > 0 ? SP.green : SP.red }}>
               {tx.a > 0 ? "+" : ""}
-              {f$(tx.a)}
+              {curSym(tx.cur)} {fmtAmt(tx.a)}
             </div>
           </div>
         ))

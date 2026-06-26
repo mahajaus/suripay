@@ -34,6 +34,13 @@ export default function HomePage() {
   const router = useRouter();
   const { balance, savings, cashback, goldGrams, txs, currencies, fx } = useDemo();
   const foreign = currencies.filter((c) => c.code !== "SRD");
+  const curSym = (code?: string) =>
+    currencies.find((c) => c.code === code)?.symbol ?? code ?? "SRD";
+  const fmtAmt = (n: number) =>
+    Math.abs(n).toLocaleString("nl-NL", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   const goldValueSRD = goldGrams * (GOLD_USD_PER_GRAM / RATES.USD);
 
@@ -268,7 +275,7 @@ export default function HomePage() {
                 }}
               >
                 {tx.a > 0 ? "+" : ""}
-                {f$(tx.a)}
+                {curSym(tx.cur)} {fmtAmt(tx.a)}
               </div>
             </div>
           ))

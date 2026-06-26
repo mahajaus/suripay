@@ -15,7 +15,8 @@ export type Tx = {
   ty: string;
   other?: string; // tegenpartij (naam/e-mail)
   d?: string; // omschrijving
-  a: number;
+  a: number; // bedrag in de getoonde valuta (kijker-zijde), met teken
+  cur?: string; // valutacode van het getoonde bedrag (default SRD)
   dt: string;
 };
 export type CryptoBal = { usdt: number; usdc: number; dai: number };
@@ -33,6 +34,8 @@ type TxRow = {
   direction: string;
   other_party: string;
   amount: number;
+  cur_amount: number;
+  cur_code: string;
   description: string | null;
   created_at: string;
 };
@@ -115,7 +118,11 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               ty: x.direction === "out" ? "send" : "receive",
               other: x.other_party,
               d: x.description || undefined,
-              a: x.direction === "out" ? -Number(x.amount) : Number(x.amount),
+              a:
+                x.direction === "out"
+                  ? -Number(x.cur_amount)
+                  : Number(x.cur_amount),
+              cur: x.cur_code,
               dt: x.created_at,
             }))
           );
