@@ -49,6 +49,11 @@ export default function AdminKycPage() {
   }, []);
 
   const decide = async (id: string, decision: "approve" | "reject") => {
+    let reason: string | null = null;
+    if (decision === "reject") {
+      reason = window.prompt("Reden van afwijzing (zichtbaar voor de gebruiker):", "");
+      if (reason === null) return; // geannuleerd
+    }
     setBusy(id);
     setError("");
     const token = await getToken();
@@ -58,7 +63,7 @@ export default function AdminKycPage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ id, decision }),
+      body: JSON.stringify({ id, decision, reason }),
     });
     const data = await res.json();
     setBusy(null);

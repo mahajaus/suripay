@@ -26,7 +26,11 @@ export default function KycPage() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [current, setCurrent] = useState<string>("");
   const [received, setReceived] = useState(0);
-  const [pending, setPending] = useState<string | null>(null);
+  const [sub, setSub] = useState<{
+    status: string;
+    requested_tier: string;
+    reject_reason: string | null;
+  } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,16 +60,15 @@ export default function KycPage() {
       }
       if (tierRows) setTiers(tierRows as Tier[]);
 
-      // Lopende verificatie? (tabel kan ontbreken vóór migratie 004 — negeer fout)
-      const { data: sub } = await supabase
+      // Laatste KYC-inzending (welke status dan ook).
+      const { data: latest } = await supabase
         .from("kyc_submissions")
-        .select("status, requested_tier")
+        .select("status, requested_tier, reject_reason")
         .eq("user_id", user.id)
-        .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (sub) setPending(sub.requested_tier);
+      if (latest) setSub(latest);
     };
     load();
   }, []);
@@ -113,7 +116,7 @@ export default function KycPage() {
       </p>
 
       {/* LOPENDE VERIFICATIE */}
-      {pending && (
+      {sub?.status === "pending" && (
         <div
           style={{
             background: "rgba(230,184,0,.12)",
@@ -130,7 +133,34 @@ export default function KycPage() {
           <div style={{ fontSize: 12 }}>
             <b style={{ color: SP.gold }}>Verificatie in behandeling</b>
             <div style={{ opacity: 0.6 }}>
-              Aanvraag voor niveau {pending} wordt beoordeeld.
+              Aanvraag voor niveau {sub.requested_tier} wordt beoordeeld.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AFGEWEZEN VERIFICATIE */}
+      {sub?.status === "rejected" && (
+        <div
+          style={{
+            background: "rgba(231,76,60,.1)",
+            border: "1px solid rgba(231,76,60,.25)",
+            borderRadius: 12,
+            padding: "12px 14px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 20 }}>❌</span>
+          <div style={{ fontSize: 12 }}>
+            <b style={{ color: SP.red }}>Verificatie afgewezen</b>
+            <div style={{ opacity: 0.7, marginTop: 2 }}>
+              {sub.reject_reason || "Neem contact op voor meer informatie."}
+            </div>
+            <div style={{ opacity: 0.5, marginTop: 4 }}>
+              Je kunt het opnieuw proberen via de knop hieronder.
             </div>
           </div>
         </div>
@@ -253,7 +283,7 @@ export default function KycPage() {
             {!active && t.sort_order > (cur?.sort_order ?? 0) && (
               <button
                 onClick={() =>
-                  pending
+                  sub?.status === "pending"
                     ? note("Er loopt al een verificatie")
                     : router.push(`/kyc/verifieren?tier=${t.name}`)
                 }

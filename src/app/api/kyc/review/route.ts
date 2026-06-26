@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   if (!(await requireAdmin(req)))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { id, decision } = await req.json();
+  const { id, decision, reason } = await req.json();
   if (!id || (decision !== "approve" && decision !== "reject"))
     return NextResponse.json({ error: "Ongeldig verzoek" }, { status: 400 });
 
@@ -94,6 +94,10 @@ export async function POST(req: NextRequest) {
     .update({
       status: decision === "approve" ? "approved" : "rejected",
       reviewed_at: new Date().toISOString(),
+      reject_reason:
+        decision === "reject" && typeof reason === "string"
+          ? reason.slice(0, 300)
+          : null,
     })
     .eq("id", id);
   if (uErr) return NextResponse.json({ error: uErr.message }, { status: 400 });
