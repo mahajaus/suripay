@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/admin/kyc", ic: "🪪", l: "KYC-inzendingen", d: "Identiteit beoordelen" },
   { href: "/admin/topups", ic: "💳", l: "Opwaarderingen", d: "Inkomende stortingen crediteren" },
   { href: "/admin/withdrawals", ic: "🏧", l: "Opnames", d: "Uitbetalingen markeren" },
+  { href: "/admin/koersen", ic: "💱", l: "Wisselkoersen", d: "Valutakoersen beheren" },
 ];
 
 export default function AdminHub() {
