@@ -82,12 +82,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           alignItems: "center",
         }}
       >
-        <div>
-          <div style={{ fontSize: 9, opacity: 0.4, letterSpacing: 2 }}>
-            SURINAME DIGITAL WALLET
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: SP.gold }}>
-            SuriPay
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {pathname !== "/home" && (
+            <Link
+              href="/home"
+              aria-label="Terug naar home"
+              style={{
+                fontSize: 22,
+                color: SP.gold,
+                textDecoration: "none",
+                lineHeight: 1,
+              }}
+            >
+              ←
+            </Link>
+          )}
+          <div>
+            <div style={{ fontSize: 9, opacity: 0.4, letterSpacing: 2 }}>
+              SURINAME DIGITAL WALLET
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: SP.gold }}>
+              SuriPay
+            </div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
